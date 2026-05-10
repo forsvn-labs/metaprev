@@ -56,6 +56,7 @@ export function renderHtml(report: Report): string {
   const handleEsc = escapeHtml(twitterHandle)
 
   const summary = summaryLine(report)
+  const copyPayloads = buildCopyPayloads(report)
 
   return `<!doctype html>
 <html lang="en">
@@ -131,6 +132,33 @@ export function renderHtml(report: Report): string {
     color: var(--muted);
     margin: 0 0 14px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .copy-btn {
+    font: inherit;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .copy-btn:hover {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+  }
+  .copy-btn[data-state="copied"] {
+    background: var(--ok);
+    color: #fff;
+    border-color: var(--ok);
   }
 
   /* Card mocks */
@@ -276,7 +304,14 @@ export function renderHtml(report: Report): string {
 
     <section class="row">
       <div class="panel">
-        <h2>Issues (${report.issues.length})</h2>
+        <h2>
+          <span>Issues (${report.issues.length})</span>
+          ${
+            report.issues.length === 0
+              ? ''
+              : `<button class="copy-btn" data-copy-target="issues">Copy</button>`
+          }
+        </h2>
         ${
           report.issues.length === 0
             ? '<p style="color: var(--ok); font-size: 13px; margin: 0;">No issues — your card is clean.</p>'
@@ -305,6 +340,47 @@ export function renderHtml(report: Report): string {
   <footer>
     Rendered by <code>metaprev</code> at ${escapeHtml(report.fetchedAt)}.
   </footer>
+
+  <script id="metaprev-copy" type="application/json">${escapeForScriptJson(copyPayloads)}</script>
+  <script>
+    (function () {
+      var node = document.getElementById('metaprev-copy');
+      if (!node) return;
+      var payloads;
+      try { payloads = JSON.parse(node.textContent || '{}'); } catch (e) { return; }
+      document.addEventListener('click', function (event) {
+        var btn = event.target && event.target.closest && event.target.closest('.copy-btn');
+        if (!btn) return;
+        var key = btn.getAttribute('data-copy-target');
+        var text = key && payloads[key];
+        if (!text) return;
+        var done = function () {
+          var original = btn.textContent;
+          btn.setAttribute('data-state', 'copied');
+          btn.textContent = 'Copied';
+          setTimeout(function () {
+            btn.removeAttribute('data-state');
+            btn.textContent = original;
+          }, 1500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, function () { fallback(text, done); });
+        } else {
+          fallback(text, done);
+        }
+      });
+      function fallback(text, done) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {} finally { document.body.removeChild(ta); }
+      }
+    })();
+  </script>
 </body>
 </html>`
 }
@@ -368,4 +444,20 @@ function summaryLine(report: Report): string {
   const warns = report.issues.filter((i) => i.level === 'warn').length
   const infos = report.issues.filter((i) => i.level === 'info').length
   return `${errors} error${errors === 1 ? '' : 's'} · ${warns} warning${warns === 1 ? '' : 's'} · ${infos} note${infos === 1 ? '' : 's'}`
+}
+
+function buildCopyPayloads(report: Report): Record<string, string> {
+  if (report.issues.length === 0) return {}
+  const header = `metaprev — ${report.finalUrl}\nfetched ${report.fetchedAt}\n\nIssues (${report.issues.length}):`
+  const lines = report.issues.map((i) => `- [${i.level.toUpperCase()}] ${i.field}: ${i.message}`)
+  return { issues: `${header}\n${lines.join('\n')}\n` }
+}
+
+// JSON inside <script> can't contain "</" sequences (browsers terminate the script tag),
+// and "<!--" / "-->" can flip parsing into HTML comment mode. Neutralize all three.
+function escapeForScriptJson(payload: unknown): string {
+  return JSON.stringify(payload)
+    .replace(/<\/(script)/gi, '<\\/$1')
+    .replace(/<!--/g, '<\\!--')
+    .replace(/-->/g, '--\\>')
 }
