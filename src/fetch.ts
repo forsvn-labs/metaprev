@@ -3,7 +3,7 @@ import type { ImageProbe } from './types.ts'
 
 const UA = 'metaprev/0.1 (+https://github.com/hungv47/metaprev)'
 
-export type PageResult = {
+type PageResult = {
   finalUrl: string
   status: number
   html: string

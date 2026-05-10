@@ -2,7 +2,6 @@ export type MetaTags = {
   title?: string
   description?: string
   canonical?: string
-  ogType?: string
   ogSiteName?: string
   ogTitle?: string
   ogDescription?: string
@@ -10,10 +9,8 @@ export type MetaTags = {
   ogImage?: string
   ogImageWidth?: string
   ogImageHeight?: string
-  ogImageAlt?: string
   twitterCard?: string
   twitterSite?: string
-  twitterCreator?: string
   twitterTitle?: string
   twitterDescription?: string
   twitterImage?: string

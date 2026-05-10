@@ -32,7 +32,6 @@ export function renderHtml(report: Report): string {
   const image = m.ogImage ?? m.twitterImage
   const finalImageUrl = report.image?.resolved ?? image
   const siteName = m.ogSiteName ?? host(report.finalUrl)
-  const twitterHandle = m.twitterSite ?? m.twitterCreator ?? ''
   const pageHost = host(report.finalUrl)
 
   const issuesHtml = report.issues
@@ -53,7 +52,6 @@ export function renderHtml(report: Report): string {
   const finalUrlEsc = escapeHtml(report.finalUrl)
   const siteEsc = escapeHtml(siteName)
   const hostEsc = escapeHtml(pageHost.toUpperCase())
-  const handleEsc = escapeHtml(twitterHandle)
 
   const summary = summaryLine(report)
   const copyPayloads = buildCopyPayloads(report)
@@ -297,7 +295,7 @@ export function renderHtml(report: Report): string {
   <main>
     <section class="row">
       ${cardMock('Facebook', 'fb', { hostEsc, titleEsc, descEsc, safeImg, siteEsc })}
-      ${cardMock('X (Twitter)', 'x', { hostEsc, titleEsc, descEsc, safeImg, siteEsc, handleEsc })}
+      ${cardMock('X (Twitter)', 'x', { hostEsc, titleEsc, descEsc, safeImg, siteEsc })}
       ${cardMock('LinkedIn', 'li', { hostEsc, titleEsc, descEsc, safeImg, siteEsc })}
       ${cardMock('Discord / Slack', 'dc', { hostEsc, titleEsc, descEsc, safeImg, siteEsc })}
     </section>
@@ -388,7 +386,7 @@ export function renderHtml(report: Report): string {
 function cardMock(
   label: string,
   variant: 'fb' | 'x' | 'li' | 'dc',
-  parts: { hostEsc: string; titleEsc: string; descEsc: string; safeImg: string; siteEsc: string; handleEsc?: string },
+  parts: { hostEsc: string; titleEsc: string; descEsc: string; safeImg: string; siteEsc: string },
 ): string {
   const imgBlock = parts.safeImg
     ? `<div class="card__img" style="background-image: url('${parts.safeImg}')"></div>`

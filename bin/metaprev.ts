@@ -135,9 +135,7 @@ function openInBrowser(file: string): void {
   const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'
   try {
     spawn(cmd, [file], { stdio: 'ignore', detached: true }).unref()
-  } catch {
-    // best effort
-  }
+  } catch {}
 }
 
 async function main(): Promise<void> {

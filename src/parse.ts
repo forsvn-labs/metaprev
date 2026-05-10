@@ -67,9 +67,6 @@ function assign(tags: MetaTags, key: string, value: string): void {
     case 'description':
       tags.description ??= value
       break
-    case 'og:type':
-      tags.ogType = value
-      break
     case 'og:site_name':
       tags.ogSiteName = value
       break
@@ -93,17 +90,11 @@ function assign(tags: MetaTags, key: string, value: string): void {
     case 'og:image:height':
       tags.ogImageHeight = value
       break
-    case 'og:image:alt':
-      tags.ogImageAlt = value
-      break
     case 'twitter:card':
       tags.twitterCard = value
       break
     case 'twitter:site':
       tags.twitterSite = value
-      break
-    case 'twitter:creator':
-      tags.twitterCreator = value
       break
     case 'twitter:title':
       tags.twitterTitle = value

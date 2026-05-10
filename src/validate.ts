@@ -11,7 +11,6 @@ const RATIO_TOLERANCE = 0.05
 export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[] {
   const issues: Issue[] = []
 
-  // Title
   const title = meta.ogTitle ?? meta.twitterTitle ?? meta.title
   if (!title) {
     issues.push({ level: 'error', field: 'title', message: 'No title found (og:title, twitter:title, or <title>)' })
@@ -24,7 +23,6 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     }
   }
 
-  // Description
   const desc = meta.ogDescription ?? meta.twitterDescription ?? meta.description
   if (!desc) {
     issues.push({ level: 'error', field: 'description', message: 'No description found (og:description, twitter:description, or meta description)' })
@@ -37,14 +35,12 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     }
   }
 
-  // og:image presence + URL shape
   if (!meta.ogImage) {
     issues.push({ level: 'error', field: 'og:image', message: 'No og:image meta tag' })
   } else if (!/^https?:\/\//i.test(meta.ogImage)) {
     issues.push({ level: 'error', field: 'og:image', message: `og:image is not an absolute URL ("${meta.ogImage}"). Many crawlers will fail to fetch it.` })
   }
 
-  // Image fetch + dimensions
   if (image) {
     if (!image.ok) {
       issues.push({ level: 'error', field: 'og:image', message: `Image did not load: ${image.error ?? 'HTTP ' + image.status}` })
@@ -70,19 +66,16 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     }
   }
 
-  // og:image:width / height presence (helps some crawlers)
   if (meta.ogImage && (!meta.ogImageWidth || !meta.ogImageHeight)) {
     issues.push({ level: 'info', field: 'og:image', message: 'Missing og:image:width / og:image:height. Optional but speeds up first-render on Slack and Discord.' })
   }
 
-  // twitter:card
   if (!meta.twitterCard) {
     issues.push({ level: 'info', field: 'twitter:card', message: 'No twitter:card meta tag. Use "summary_large_image" for big-image cards.' })
   } else if (meta.twitterCard !== 'summary_large_image' && meta.twitterCard !== 'summary') {
     issues.push({ level: 'info', field: 'twitter:card', message: `twitter:card is "${meta.twitterCard}" — unusual; expected "summary_large_image" or "summary".` })
   }
 
-  // og:url / canonical
   if (!meta.ogUrl && !meta.canonical) {
     issues.push({ level: 'info', field: 'og:url', message: 'No og:url or canonical link. Helps with deduping shares.' })
   }
