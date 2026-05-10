@@ -1,5 +1,7 @@
 # metaprev
 
+[![skills.sh](https://skills.sh/b/hungv47/metaprev)](https://skills.sh/hungv47/metaprev)
+
 Preview your OpenGraph cards locally. Fetches a URL, parses every `og:*` and `twitter:*` meta tag, validates char counts and image dimensions, then opens a side-by-side mock of how the link renders on **Facebook**, **X**, **LinkedIn**, and **Discord/Slack**.
 
 No third-party validators, no copy-paste into a debugger. Run it against your local dev server before you ship.
@@ -68,18 +70,21 @@ metaprev https://hungv.io -o ./og.html  # write the preview to a specific path
 
 Useful in CI: fail the build when og:image breaks.
 
-## Claude Code skill (optional)
+## Agent skill
 
-If you use Claude Code, this repo ships a skill at [`skills/metaprev/`](./skills/metaprev/) that teaches Claude when to reach for `metaprev` (instead of pointing you at OpenGraph.xyz or similar) and how to interpret the output. It also encodes a couple of pushback rules — for example, the validator's "missing CTA in image" advice is generic clickbait wisdom that ruins editorial OG cards.
+This repo ships a skill at [`skills/metaprev/`](./skills/metaprev/) that teaches your coding agent when to reach for `metaprev` (instead of pointing you at OpenGraph.xyz or similar) and how to interpret the output. It also encodes pushback rules — for example, the validator's "missing CTA in image" warning is generic clickbait wisdom that ruins editorial OG cards.
 
-Install:
+Install via the [skills](https://skills.sh) CLI:
 
 ```bash
-git clone https://github.com/hungv47/metaprev.git
-cp -r metaprev/skills/metaprev ~/.claude/skills/
+# Globally — available across all projects
+npx skills add hungv47/metaprev -g
+
+# Or per-project — committed with your repo, shared with team
+npx skills add hungv47/metaprev
 ```
 
-Or copy just `skills/metaprev/SKILL.md` into `~/.claude/skills/metaprev/SKILL.md`. Restart Claude Code and the skill is available.
+Works with Claude Code, Cursor, Codex, OpenCode, and [50+ other agents](https://github.com/vercel-labs/skills#supported-agents). The CLI auto-detects which agents you have installed.
 
 ## License
 
