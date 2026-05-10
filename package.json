@@ -1,0 +1,54 @@
+{
+  "name": "@hungv47/metaprev",
+  "version": "0.1.0",
+  "description": "Preview your OpenGraph cards locally. Fetches a URL, validates meta tags + image dimensions, opens a side-by-side mock of how the link renders on Facebook, X, LinkedIn, and Discord.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Le Vinh Hung <levinhhungg@gmail.com>",
+  "homepage": "https://github.com/hungv47/metaprev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hungv47/metaprev.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hungv47/metaprev/issues"
+  },
+  "keywords": [
+    "opengraph",
+    "og-image",
+    "og-preview",
+    "social-preview",
+    "twitter-card",
+    "meta-tags",
+    "seo",
+    "cli"
+  ],
+  "bin": {
+    "metaprev": "bin/metaprev.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "scripts": {
+    "dev": "bun bin/metaprev.ts",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "image-size": "^1.2.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
