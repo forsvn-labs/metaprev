@@ -68,6 +68,19 @@ metaprev https://hungv.io -o ./og.html  # write the preview to a specific path
 
 Useful in CI: fail the build when og:image breaks.
 
+## Claude Code skill (optional)
+
+If you use Claude Code, this repo ships a skill at [`skills/metaprev/`](./skills/metaprev/) that teaches Claude when to reach for `metaprev` (instead of pointing you at OpenGraph.xyz or similar) and how to interpret the output. It also encodes a couple of pushback rules — for example, the validator's "missing CTA in image" advice is generic clickbait wisdom that ruins editorial OG cards.
+
+Install:
+
+```bash
+git clone https://github.com/hungv47/metaprev.git
+cp -r metaprev/skills/metaprev ~/.claude/skills/
+```
+
+Or copy just `skills/metaprev/SKILL.md` into `~/.claude/skills/metaprev/SKILL.md`. Restart Claude Code and the skill is available.
+
 ## License
 
 MIT © Le Vinh Hung
