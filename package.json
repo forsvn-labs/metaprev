@@ -29,7 +29,9 @@
   "files": [
     "bin",
     "src",
+    "skills",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {
