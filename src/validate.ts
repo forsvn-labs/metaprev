@@ -70,6 +70,24 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     issues.push({ level: 'info', field: 'og:image', message: 'Missing og:image:width / og:image:height. Optional but speeds up first-render on Slack and Discord.' })
   }
 
+  if (image?.ok && image.width && image.height && meta.ogImageWidth && meta.ogImageHeight) {
+    const declaredW = Number(meta.ogImageWidth)
+    const declaredH = Number(meta.ogImageHeight)
+    if (!Number.isFinite(declaredW) || !Number.isFinite(declaredH)) {
+      issues.push({
+        level: 'warn',
+        field: 'og:image',
+        message: `og:image:width/height are not valid integers ("${meta.ogImageWidth}"/"${meta.ogImageHeight}"). Crawlers may ignore them.`,
+      })
+    } else if (Math.abs(declaredW - image.width) > 1 || Math.abs(declaredH - image.height) > 1) {
+      issues.push({
+        level: 'warn',
+        field: 'og:image',
+        message: `Declared og:image:width/height (${declaredW}×${declaredH}) does not match actual image (${image.width}×${image.height}). Slack and Discord trust the declared values for first-paint and will mis-crop.`,
+      })
+    }
+  }
+
   if (!meta.twitterCard) {
     issues.push({ level: 'info', field: 'twitter:card', message: 'No twitter:card meta tag. Use "summary_large_image" for big-image cards.' })
   } else if (meta.twitterCard !== 'summary_large_image' && meta.twitterCard !== 'summary') {
