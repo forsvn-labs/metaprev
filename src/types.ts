@@ -26,6 +26,10 @@ export type ImageProbe = {
   width?: number
   height?: number
   error?: string
+  // base64 data URI of the fetched image bytes. Embedded in the HTML preview so the
+  // browser renders exactly what was validated, not whatever stale copy it has cached
+  // for the og:image URL. Stripped from --json output.
+  dataUri?: string
 }
 
 export type Issue = {

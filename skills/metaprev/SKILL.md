@@ -5,7 +5,7 @@ description: Preview, validate, and debug OpenGraph cards and social link previe
 
 # metaprev — local OpenGraph preview
 
-`metaprev` is a CLI that fetches a URL, parses every `og:*` and `twitter:*` meta tag, validates char counts and image dimensions, then opens a side-by-side mock of how the link renders on Facebook, X, LinkedIn, and Discord/Slack. Works against `localhost` and any public URL, no third-party dependency.
+`metaprev` is a CLI that fetches a URL, parses every `og:*` and `twitter:*` meta tag, validates char counts and image dimensions, then opens a side-by-side mock of how the link renders on Facebook, X, LinkedIn, and Discord/Slack. Works against any `localhost` dev server (regardless of framework or port) and any public URL — no third-party dependency.
 
 - Repo: https://github.com/hungv47/metaprev
 - Package: `@hungv47/metaprev`
@@ -30,11 +30,17 @@ Don't reach for it when the task is: favicon work, PWA manifests, OG image *gene
 The default invocation is `npx` so no install is needed. Bun is required on `PATH` because the package ships TypeScript and runs it via Bun.
 
 ```bash
-# Any URL
+# Any URL — deployed or local dev (any framework, any port)
 npx @hungv47/metaprev https://example.com
+npx @hungv47/metaprev http://localhost:3000   # Next, Vite, Bun.serve, Rails…
+npx @hungv47/metaprev http://localhost:4321   # Astro
+npx @hungv47/metaprev http://localhost:5173   # Vite default
+# (no URL → prints help)
 
-# Local dev server (default URL is http://localhost:4321)
-npx @hungv47/metaprev
+# Subcommands — scoped text/JSON output, no browser
+npx @hungv47/metaprev issues https://example.com          # just the issue list
+npx @hungv47/metaprev facts  https://example.com          # just the parsed meta facts
+npx @hungv47/metaprev facts  https://example.com --json   # pipe into another tool
 
 # CI / scripting — JSON to stdout, no browser
 npx @hungv47/metaprev https://example.com --json
@@ -44,6 +50,9 @@ npx @hungv47/metaprev https://example.com --no-open
 
 # Write the preview HTML to a specific file
 npx @hungv47/metaprev https://example.com -o ./og-preview.html
+
+# Local self-signed TLS (auto-on for *.localhost / *.test / 127.0.0.1; otherwise pass explicitly)
+npx @hungv47/metaprev https://staging.internal --insecure
 ```
 
 Exit codes: `0` clean, `1` at least one error-level issue, `2` fetch failure. Use exit code `1` to fail a CI check.

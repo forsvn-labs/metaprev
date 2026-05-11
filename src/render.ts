@@ -31,6 +31,8 @@ export function renderHtml(report: Report): string {
   const desc = m.ogDescription ?? m.twitterDescription ?? m.description ?? ''
   const image = m.ogImage ?? m.twitterImage
   const finalImageUrl = report.image?.resolved ?? image
+  // Frozen snapshot for the card mocks — bypasses any browser cache of the live URL.
+  const previewImageSrc = report.image?.dataUri ?? finalImageUrl
   const siteName = m.ogSiteName ?? host(report.finalUrl)
   const pageHost = host(report.finalUrl)
 
@@ -46,6 +48,7 @@ export function renderHtml(report: Report): string {
     .join('')
 
   const safeImg = finalImageUrl ? escapeHtml(finalImageUrl) : ''
+  const safePreviewImg = previewImageSrc ? escapeHtml(previewImageSrc) : ''
   const titleEsc = escapeHtml(title)
   const descEsc = escapeHtml(desc)
   const sourceEsc = escapeHtml(report.source)
@@ -294,10 +297,10 @@ export function renderHtml(report: Report): string {
 
   <main>
     <section class="row">
-      ${cardMock('Facebook', 'fb', { hostEsc, titleEsc, descEsc, safeImg, siteEsc })}
-      ${cardMock('X (Twitter)', 'x', { hostEsc, titleEsc, descEsc, safeImg, siteEsc })}
-      ${cardMock('LinkedIn', 'li', { hostEsc, titleEsc, descEsc, safeImg, siteEsc })}
-      ${cardMock('Discord / Slack', 'dc', { hostEsc, titleEsc, descEsc, safeImg, siteEsc })}
+      ${cardMock('Facebook', 'fb', { hostEsc, titleEsc, descEsc, safeImg: safePreviewImg, siteEsc })}
+      ${cardMock('X (Twitter)', 'x', { hostEsc, titleEsc, descEsc, safeImg: safePreviewImg, siteEsc })}
+      ${cardMock('LinkedIn', 'li', { hostEsc, titleEsc, descEsc, safeImg: safePreviewImg, siteEsc })}
+      ${cardMock('Discord / Slack', 'dc', { hostEsc, titleEsc, descEsc, safeImg: safePreviewImg, siteEsc })}
     </section>
 
     <section class="row">

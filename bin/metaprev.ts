@@ -6,10 +6,13 @@ import { join } from 'node:path'
 import { fetchPage, isLocalUrl, probeImage } from '../src/fetch.ts'
 import { parseMeta } from '../src/parse.ts'
 import { renderHtml } from '../src/render.ts'
-import type { Report } from '../src/types.ts'
+import type { ImageProbe, Report } from '../src/types.ts'
 import { validate } from '../src/validate.ts'
 
+type Cmd = 'preview' | 'issues' | 'facts'
+
 type Opts = {
+  cmd: Cmd
   url: string
   output?: string
   open: boolean
@@ -18,11 +21,13 @@ type Opts = {
   insecure: boolean
 }
 
-const VERSION = '0.1.0'
+const VERSION = '0.2.0'
+const SUBCOMMANDS = new Set<Cmd>(['issues', 'facts'])
 
 function parseArgs(argv: string[]): Opts {
   const opts: Opts = {
-    url: 'http://localhost:4321',
+    cmd: 'preview',
+    url: '',
     open: true,
     json: false,
     help: false,
@@ -60,8 +65,11 @@ function parseArgs(argv: string[]): Opts {
         if (a && !a.startsWith('-')) positional.push(a)
     }
   }
+  if (positional[0] && SUBCOMMANDS.has(positional[0] as Cmd)) {
+    opts.cmd = positional.shift() as Cmd
+  }
   if (positional[0]) opts.url = positional[0]
-  if (!/^https?:\/\//i.test(opts.url)) opts.url = `http://${opts.url}`
+  if (opts.url && !/^https?:\/\//i.test(opts.url)) opts.url = `http://${opts.url}`
   return opts
 }
 
@@ -69,13 +77,15 @@ function help(): void {
   console.log(`metaprev v${VERSION} — preview your OpenGraph cards locally
 
 Usage:
-  metaprev [url] [options]
+  metaprev <url> [options]              # full preview + browser open
+  metaprev issues <url> [options]       # print just the issues
+  metaprev facts  <url> [options]       # print just the parsed meta facts
 
 Arguments:
-  url                URL to fetch (default: http://localhost:4321)
+  url                URL to fetch (e.g. https://example.com or http://localhost:3000)
 
 Options:
-  -o, --output FILE  Write the preview HTML to FILE
+  -o, --output FILE  Write the preview HTML to FILE (preview command only)
   --no-open          Don't auto-open the preview in your browser
   --json             Print machine-readable JSON to stdout (implies --no-open)
   -k, --insecure     Skip TLS cert verification (auto-on for *.localhost / *.test / 127.0.0.1)
@@ -83,9 +93,10 @@ Options:
   -h, --help         Show this help
 
 Examples:
-  metaprev                            # check your local dev server
-  metaprev https://hungv.io           # check a deployed page
-  metaprev https://hungv.io --json    # CI-friendly JSON output
+  metaprev http://localhost:3000            # check your local dev server
+  metaprev https://hungv.io                 # check a deployed page
+  metaprev issues http://localhost:3000     # quick issue check, no browser
+  metaprev facts https://hungv.io --json    # pipe parsed meta into another tool
 `)
 }
 
@@ -106,6 +117,10 @@ function dim(s: string): string {
   return process.stdout.isTTY ? `\x1b[2m${s}\x1b[22m` : s
 }
 
+function green(s: string): string {
+  return process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s
+}
+
 function printTerminal(report: Report): void {
   const m = report.meta
   const title = m.ogTitle ?? m.twitterTitle ?? m.title ?? '(none)'
@@ -124,7 +139,7 @@ function printTerminal(report: Report): void {
   }
   console.log()
   if (report.issues.length === 0) {
-    console.log('  \x1b[32m✓ no issues — your card is clean.\x1b[0m')
+    console.log(`  ${green('✓ no issues — your card is clean.')}`)
   } else {
     for (const i of report.issues) {
       const tag = i.level === 'error' ? 'ERR' : i.level === 'warn' ? 'WRN' : 'INF'
@@ -132,6 +147,51 @@ function printTerminal(report: Report): void {
     }
   }
   console.log()
+}
+
+function printIssuesOnly(report: Report): void {
+  if (report.issues.length === 0) {
+    console.log(green('✓ no issues — your card is clean.'))
+    return
+  }
+  for (const i of report.issues) {
+    const tag = i.level === 'error' ? 'ERR' : i.level === 'warn' ? 'WRN' : 'INF'
+    console.log(`${reportColor(i.level)}${tag}${reset()} ${dim(i.field.padEnd(12))} ${i.message}`)
+  }
+}
+
+function printFactsOnly(report: Report): void {
+  const m = report.meta
+  const title = m.ogTitle ?? m.twitterTitle ?? m.title
+  const desc = m.ogDescription ?? m.twitterDescription ?? m.description
+  const rows: Array<[string, string]> = [
+    ['source', report.source],
+    ['final url', report.finalUrl],
+    ['http', String(report.status)],
+    ['title', fmt(title, true)],
+    ['description', fmt(desc, true)],
+    ['og:image', m.ogImage ?? '(none)'],
+    ['image dims', report.image?.width && report.image?.height ? `${report.image.width}×${report.image.height}px` : report.image?.error ? `failed: ${report.image.error}` : '(unknown)'],
+    ['image bytes', report.image?.byteLength != null ? formatBytes(report.image.byteLength) : '(unknown)'],
+    ['twitter:card', m.twitterCard ?? '(none)'],
+    ['og:site_name', m.ogSiteName ?? '(none)'],
+    ['canonical', m.canonical ?? m.ogUrl ?? '(none)'],
+  ]
+  const labelWidth = Math.max(...rows.map((r) => r[0].length))
+  for (const [label, value] of rows) {
+    console.log(`${dim(label.padEnd(labelWidth))}  ${value}`)
+  }
+}
+
+function fmt(s: string | undefined, withCount = false): string {
+  if (!s) return '(none)'
+  return withCount ? `${s} ${dim(`(${s.length} chars)`)}` : s
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+  return `${(n / 1024 / 1024).toFixed(2)} MB`
 }
 
 function truncate(s: string, n: number): string {
@@ -145,17 +205,57 @@ function openInBrowser(file: string): void {
   } catch {}
 }
 
+// Strip the embedded image bytes from --json output. They're only useful for the
+// HTML preview and would otherwise bloat piped output by ~100KB+.
+function stripDataUri(report: Report): Report {
+  if (!report.image?.dataUri) return report
+  const image: ImageProbe = { ...report.image }
+  delete image.dataUri
+  return { ...report, image }
+}
+
+async function buildReport(opts: Opts): Promise<Report> {
+  const fetchedAt = new Date().toISOString()
+  const page = await fetchPage(opts.url, { insecure: opts.insecure })
+  const meta = parseMeta(page.html)
+  const imageRef = meta.ogImage ?? meta.twitterImage
+  const image = imageRef ? await probeImage(imageRef, page.finalUrl, { insecure: opts.insecure }) : undefined
+  const issues = validate(meta, image)
+  return {
+    source: opts.url,
+    fetchedAt,
+    finalUrl: page.finalUrl,
+    status: page.status,
+    meta,
+    image,
+    issues,
+  }
+}
+
 async function main(): Promise<void> {
   const opts = parseArgs(process.argv.slice(2))
   if (opts.help) {
     help()
     return
   }
+  if (!opts.url) {
+    // Subcommand with no URL is a user error — scripts that forget to interpolate $URL
+    // should fail loudly, not silently exit 0.
+    if (opts.cmd !== 'preview') {
+      console.error(`metaprev: '${opts.cmd}' needs a URL argument`)
+      console.error(`  example: metaprev ${opts.cmd} https://example.com`)
+      process.exit(2)
+    }
+    help()
+    return
+  }
+  if (opts.output && opts.cmd !== 'preview') {
+    console.error(`metaprev: --output is ignored for '${opts.cmd}' (no preview HTML is generated)`)
+  }
 
-  const fetchedAt = new Date().toISOString()
-  let page
+  let report: Report
   try {
-    page = await fetchPage(opts.url, { insecure: opts.insecure })
+    report = await buildReport(opts)
   } catch (err) {
     const msg = (err as Error).message
     console.error(`metaprev: failed to fetch ${opts.url}`)
@@ -166,23 +266,36 @@ async function main(): Promise<void> {
     process.exit(2)
   }
 
-  const meta = parseMeta(page.html)
-  const imageRef = meta.ogImage ?? meta.twitterImage
-  const image = imageRef ? await probeImage(imageRef, page.finalUrl, { insecure: opts.insecure }) : undefined
-  const issues = validate(meta, image)
+  const hasError = report.issues.some((i) => i.level === 'error')
 
-  const report: Report = {
-    source: opts.url,
-    fetchedAt,
-    finalUrl: page.finalUrl,
-    status: page.status,
-    meta,
-    image,
-    issues,
+  if (opts.cmd === 'issues') {
+    if (opts.json) {
+      process.stdout.write(JSON.stringify(report.issues, null, 2) + '\n')
+    } else {
+      printIssuesOnly(report)
+    }
+    process.exit(hasError ? 1 : 0)
   }
 
+  if (opts.cmd === 'facts') {
+    if (opts.json) {
+      const facts = {
+        source: report.source,
+        finalUrl: report.finalUrl,
+        status: report.status,
+        meta: report.meta,
+        image: stripDataUri(report).image,
+      }
+      process.stdout.write(JSON.stringify(facts, null, 2) + '\n')
+    } else {
+      printFactsOnly(report)
+    }
+    return
+  }
+
+  // default: full preview
   if (opts.json) {
-    process.stdout.write(JSON.stringify(report, null, 2) + '\n')
+    process.stdout.write(JSON.stringify(stripDataUri(report), null, 2) + '\n')
     return
   }
 
@@ -194,7 +307,6 @@ async function main(): Promise<void> {
   console.log(`  ${dim('preview →')} ${outFile}`)
   if (opts.open) openInBrowser(outFile)
 
-  const hasError = issues.some((i) => i.level === 'error')
   process.exit(hasError ? 1 : 0)
 }
 

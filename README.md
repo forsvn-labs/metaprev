@@ -4,10 +4,12 @@
 
 Preview your OpenGraph cards locally. Fetches a URL, parses every `og:*` and `twitter:*` meta tag, validates char counts and image dimensions, then opens a side-by-side mock of how the link renders on **Facebook**, **X**, **LinkedIn**, and **Discord/Slack**.
 
-No third-party validators, no copy-paste into a debugger. Run it against your local dev server before you ship.
+No third-party validators, no copy-paste into a debugger. Run it against your local dev server (any framework — Next, Astro, Vite, SvelteKit, Bun.serve, Rails, Django…) or a deployed page before you ship.
 
 ```bash
-npx @hungv47/metaprev http://localhost:4321
+npx @hungv47/metaprev https://your-site.com
+# or against a local dev server on whatever port your framework uses
+npx @hungv47/metaprev http://localhost:3000
 ```
 
 ## What it checks
@@ -45,20 +47,29 @@ Requires `bun` on PATH ([install](https://bun.sh/install)) — the package ships
 ## Usage
 
 ```bash
-metaprev                            # check your local dev server (http://localhost:4321)
-metaprev https://hungv.io           # check a deployed page
-metaprev https://hungv.io --json    # CI-friendly JSON output
-metaprev https://hungv.io --no-open # don't auto-open the preview
-metaprev https://hungv.io -o ./og.html  # write the preview to a specific path
+metaprev                                 # no URL → show help
+metaprev http://localhost:3000           # check your local dev server (any port, any framework)
+metaprev https://hungv.io                # check a deployed page
+metaprev https://hungv.io --json         # CI-friendly JSON output
+metaprev https://hungv.io --no-open      # don't auto-open the preview
+metaprev https://hungv.io -o ./og.html   # write the preview to a specific path
+
+# Subcommands — same data, no browser, scoped output
+metaprev issues http://localhost:3000    # just the issue list (exits 1 on errors — CI-friendly)
+metaprev facts  https://hungv.io         # just the parsed meta facts (title, dims, bytes, etc.)
+metaprev facts  https://hungv.io --json  # pipe parsed meta into another tool
 ```
+
+The og:image is embedded as a base64 data URI in the preview HTML, so the browser always shows exactly what was just fetched — no stale cached image when you regenerate your OG asset.
 
 ## Options
 
 | Flag | Effect |
 |---|---|
-| `-o, --output <file>` | Write preview HTML to `<file>` (default: a temp file) |
+| `-o, --output <file>` | Write preview HTML to `<file>` (default: a temp file; preview command only) |
 | `--no-open` | Don't auto-open the preview in your browser |
 | `--json` | Print machine-readable JSON to stdout (implies `--no-open`) |
+| `-k, --insecure` | Skip TLS verification (auto-on for `*.localhost` / `*.test` / `127.0.0.1`) |
 | `-v, --version` | Print version |
 | `-h, --help` | Show help |
 

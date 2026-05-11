@@ -19,6 +19,20 @@ function tlsOpt(url: string, opts: FetchOpts): { rejectUnauthorized: false } | u
   return opts.insecure || isLocalUrl(url) ? { rejectUnauthorized: false } : undefined
 }
 
+function guessMime(url: string): string | undefined {
+  const ext = url.split('?')[0]?.split('#')[0]?.split('.').pop()?.toLowerCase()
+  switch (ext) {
+    case 'png': return 'image/png'
+    case 'jpg':
+    case 'jpeg': return 'image/jpeg'
+    case 'webp': return 'image/webp'
+    case 'gif': return 'image/gif'
+    case 'svg': return 'image/svg+xml'
+    case 'avif': return 'image/avif'
+    default: return undefined
+  }
+}
+
 type PageResult = {
   finalUrl: string
   status: number
@@ -30,8 +44,9 @@ export async function fetchPage(url: string, opts: FetchOpts = {}, timeoutMs = 1
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
     const res = await fetch(url, {
-      headers: { 'user-agent': UA, accept: 'text/html,*/*' },
+      headers: { 'user-agent': UA, accept: 'text/html,*/*', 'cache-control': 'no-cache', pragma: 'no-cache' },
       redirect: 'follow',
+      cache: 'no-store',
       signal: ctrl.signal,
       tls: tlsOpt(url, opts),
     })
@@ -54,8 +69,9 @@ export async function probeImage(url: string, base: string, opts: FetchOpts = {}
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
     const res = await fetch(resolved, {
-      headers: { 'user-agent': UA, accept: 'image/*,*/*' },
+      headers: { 'user-agent': UA, accept: 'image/*,*/*', 'cache-control': 'no-cache', pragma: 'no-cache' },
       redirect: 'follow',
+      cache: 'no-store',
       signal: ctrl.signal,
       tls: tlsOpt(resolved, opts),
     })
@@ -79,6 +95,13 @@ export async function probeImage(url: string, base: string, opts: FetchOpts = {}
     } catch (err) {
       probe.error = `Could not read image dimensions: ${(err as Error).message}`
     }
+    // Validate the MIME against a strict pattern before embedding into HTML/CSS — a
+    // misbehaving server could otherwise propagate junk into the data: URI which then
+    // sits inside `style="background-image: url('...')"`.
+    const MIME_RE = /^[a-z]+\/[a-z0-9.+-]+$/i
+    const rawMime = (probe.contentType?.split(';')[0] ?? '').trim()
+    const mime = (MIME_RE.test(rawMime) ? rawMime : '') || guessMime(resolved) || 'application/octet-stream'
+    probe.dataUri = `data:${mime};base64,${buf.toString('base64')}`
     return probe
   } catch (err) {
     return {
