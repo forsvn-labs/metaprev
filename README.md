@@ -2,6 +2,8 @@
 
 [![skills.sh](https://skills.sh/b/hungv47/metaprev)](https://skills.sh/hungv47/metaprev)
 
+![metaprev demo](https://github.com/hungv47/metaprev/raw/main/demo.gif)
+
 Preview your OpenGraph cards locally. Fetches a URL, parses every `og:*` and `twitter:*` meta tag, validates char counts and image dimensions, then opens a side-by-side mock of how the link renders on **Facebook**, **X**, **LinkedIn**, and **Discord/Slack**.
 
 No third-party validators, no copy-paste into a debugger. Run it against your local dev server (any framework — Next, Astro, Vite, SvelteKit, Bun.serve, Rails, Django…) or a deployed page before you ship.
@@ -49,15 +51,15 @@ Requires `bun` on PATH ([install](https://bun.sh/install)) — the package ships
 ```bash
 metaprev                                 # no URL → show help
 metaprev http://localhost:3000           # check your local dev server (any port, any framework)
-metaprev https://hungv.io                # check a deployed page
-metaprev https://hungv.io --json         # CI-friendly JSON output
-metaprev https://hungv.io --no-open      # don't auto-open the preview
-metaprev https://hungv.io -o ./og.html   # write the preview to a specific path
+metaprev https://forsvn.com                # check a deployed page
+metaprev https://forsvn.com --json         # CI-friendly JSON output
+metaprev https://forsvn.com --no-open      # don't auto-open the preview
+metaprev https://forsvn.com -o ./og.html   # write the preview to a specific path
 
 # Subcommands — same data, no browser, scoped output
 metaprev issues http://localhost:3000    # just the issue list (exits 1 on errors — CI-friendly)
-metaprev facts  https://hungv.io         # just the parsed meta facts (title, dims, bytes, etc.)
-metaprev facts  https://hungv.io --json  # pipe parsed meta into another tool
+metaprev facts  https://forsvn.com         # just the parsed meta facts (title, dims, bytes, etc.)
+metaprev facts  https://forsvn.com --json  # pipe parsed meta into another tool
 ```
 
 The og:image is embedded as a base64 data URI in the preview HTML, so the browser always shows exactly what was just fetched — no stale cached image when you regenerate your OG asset.
