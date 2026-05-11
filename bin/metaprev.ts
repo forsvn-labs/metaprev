@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fetchPage, probeImage } from '../src/fetch.ts'
+import { fetchPage, isLocalUrl, probeImage } from '../src/fetch.ts'
 import { parseMeta } from '../src/parse.ts'
 import { renderHtml } from '../src/render.ts'
 import type { Report } from '../src/types.ts'
@@ -15,6 +15,7 @@ type Opts = {
   open: boolean
   json: boolean
   help: boolean
+  insecure: boolean
 }
 
 const VERSION = '0.1.0'
@@ -25,6 +26,7 @@ function parseArgs(argv: string[]): Opts {
     open: true,
     json: false,
     help: false,
+    insecure: false,
   }
   const positional: string[] = []
   for (let i = 0; i < argv.length; i++) {
@@ -45,6 +47,10 @@ function parseArgs(argv: string[]): Opts {
       case '--json':
         opts.json = true
         opts.open = false
+        break
+      case '-k':
+      case '--insecure':
+        opts.insecure = true
         break
       case '-o':
       case '--output':
@@ -72,6 +78,7 @@ Options:
   -o, --output FILE  Write the preview HTML to FILE
   --no-open          Don't auto-open the preview in your browser
   --json             Print machine-readable JSON to stdout (implies --no-open)
+  -k, --insecure     Skip TLS cert verification (auto-on for *.localhost / *.test / 127.0.0.1)
   -v, --version      Print version and exit
   -h, --help         Show this help
 
@@ -148,16 +155,20 @@ async function main(): Promise<void> {
   const fetchedAt = new Date().toISOString()
   let page
   try {
-    page = await fetchPage(opts.url)
+    page = await fetchPage(opts.url, { insecure: opts.insecure })
   } catch (err) {
+    const msg = (err as Error).message
     console.error(`metaprev: failed to fetch ${opts.url}`)
-    console.error(`  ${(err as Error).message}`)
+    console.error(`  ${msg}`)
+    if (/self[ -]?signed|certificate|unable to verify/i.test(msg) && !opts.insecure && !isLocalUrl(opts.url)) {
+      console.error(`  hint: rerun with --insecure to skip TLS verification (auto-on for *.localhost / *.test / 127.0.0.1)`)
+    }
     process.exit(2)
   }
 
   const meta = parseMeta(page.html)
   const imageRef = meta.ogImage ?? meta.twitterImage
-  const image = imageRef ? await probeImage(imageRef, page.finalUrl) : undefined
+  const image = imageRef ? await probeImage(imageRef, page.finalUrl, { insecure: opts.insecure }) : undefined
   const issues = validate(meta, image)
 
   const report: Report = {

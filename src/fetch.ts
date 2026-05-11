@@ -3,13 +3,29 @@ import type { ImageProbe } from './types.ts'
 
 const UA = 'metaprev/0.1 (+https://github.com/hungv47/metaprev)'
 
+const LOCAL_HOST_RE = /^(localhost|.+\.localhost|.+\.test|127\.0\.0\.1|0\.0\.0\.0|::1)$/i
+
+export function isLocalUrl(url: string): boolean {
+  try {
+    return LOCAL_HOST_RE.test(new URL(url).hostname)
+  } catch {
+    return false
+  }
+}
+
+type FetchOpts = { insecure?: boolean }
+
+function tlsOpt(url: string, opts: FetchOpts): { rejectUnauthorized: false } | undefined {
+  return opts.insecure || isLocalUrl(url) ? { rejectUnauthorized: false } : undefined
+}
+
 type PageResult = {
   finalUrl: string
   status: number
   html: string
 }
 
-export async function fetchPage(url: string, timeoutMs = 10_000): Promise<PageResult> {
+export async function fetchPage(url: string, opts: FetchOpts = {}, timeoutMs = 10_000): Promise<PageResult> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
@@ -17,6 +33,7 @@ export async function fetchPage(url: string, timeoutMs = 10_000): Promise<PageRe
       headers: { 'user-agent': UA, accept: 'text/html,*/*' },
       redirect: 'follow',
       signal: ctrl.signal,
+      tls: tlsOpt(url, opts),
     })
     const html = await res.text()
     return { finalUrl: res.url || url, status: res.status, html }
@@ -25,7 +42,7 @@ export async function fetchPage(url: string, timeoutMs = 10_000): Promise<PageRe
   }
 }
 
-export async function probeImage(url: string, base: string, timeoutMs = 10_000): Promise<ImageProbe> {
+export async function probeImage(url: string, base: string, opts: FetchOpts = {}, timeoutMs = 10_000): Promise<ImageProbe> {
   let resolved = url
   try {
     resolved = new URL(url, base).toString()
@@ -40,6 +57,7 @@ export async function probeImage(url: string, base: string, timeoutMs = 10_000):
       headers: { 'user-agent': UA, accept: 'image/*,*/*' },
       redirect: 'follow',
       signal: ctrl.signal,
+      tls: tlsOpt(resolved, opts),
     })
     const probe: ImageProbe = {
       url,
