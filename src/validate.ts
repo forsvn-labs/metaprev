@@ -2,8 +2,6 @@ import type { ImageProbe, Issue, MetaTags } from './types.ts'
 
 const TITLE_OPTIMAL = [50, 60] as const
 const DESC_OPTIMAL = [110, 160] as const
-const TITLE_HARD = [30, 70] as const
-const DESC_HARD = [80, 200] as const
 const IMAGE_OPTIMAL = { w: 1200, h: 630 } as const
 const IMAGE_RATIO_OPTIMAL = 1200 / 630
 const RATIO_TOLERANCE = 0.05
@@ -16,9 +14,9 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     issues.push({ level: 'error', field: 'title', message: 'No title found (og:title, twitter:title, or <title>)' })
   } else {
     const len = title.length
-    if (len < TITLE_HARD[0]) {
+    if (len < TITLE_OPTIMAL[0]) {
       issues.push({ level: 'warn', field: 'title', message: `Title is short (${len} chars). Optimal: ${TITLE_OPTIMAL[0]}–${TITLE_OPTIMAL[1]} chars` })
-    } else if (len > TITLE_HARD[1]) {
+    } else if (len > TITLE_OPTIMAL[1]) {
       issues.push({ level: 'warn', field: 'title', message: `Title is long (${len} chars). Optimal: ${TITLE_OPTIMAL[0]}–${TITLE_OPTIMAL[1]} chars; many platforms truncate after ~70` })
     }
   }
@@ -28,9 +26,9 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     issues.push({ level: 'error', field: 'description', message: 'No description found (og:description, twitter:description, or meta description)' })
   } else {
     const len = desc.length
-    if (len < DESC_HARD[0]) {
+    if (len < DESC_OPTIMAL[0]) {
       issues.push({ level: 'warn', field: 'description', message: `Description is short (${len} chars). Optimal: ${DESC_OPTIMAL[0]}–${DESC_OPTIMAL[1]} chars` })
-    } else if (len > DESC_HARD[1]) {
+    } else if (len > DESC_OPTIMAL[1]) {
       issues.push({ level: 'warn', field: 'description', message: `Description is long (${len} chars). Optimal: ${DESC_OPTIMAL[0]}–${DESC_OPTIMAL[1]} chars; many platforms truncate after ~200` })
     }
   }

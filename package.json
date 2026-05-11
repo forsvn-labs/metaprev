@@ -1,6 +1,6 @@
 {
   "name": "@hungv47/metaprev",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Preview your OpenGraph cards locally. Fetches a URL, validates meta tags + image dimensions, opens a side-by-side mock of how the link renders on Facebook, X, LinkedIn, and Discord.",
   "type": "module",
   "license": "MIT",
