@@ -4,12 +4,15 @@ import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fetchPage, isLocalUrl, probeImage } from '../src/fetch.ts'
+import { formatBytes } from '../src/format.ts'
 import { parseMeta } from '../src/parse.ts'
 import { renderHtml } from '../src/render.ts'
 import type { ImageProbe, Report } from '../src/types.ts'
 import { validate } from '../src/validate.ts'
 
 type Cmd = 'preview' | 'issues' | 'facts'
+type Issue = Report['issues'][number]
+type IssueLevel = Issue['level']
 
 type Opts = {
   cmd: Cmd
@@ -23,6 +26,11 @@ type Opts = {
 
 const VERSION = '0.2.0'
 const SUBCOMMANDS = new Set<Cmd>(['issues', 'facts'])
+const ISSUE_TAGS: Record<IssueLevel, string> = {
+  error: 'ERR',
+  warn: 'WRN',
+  info: 'INF',
+}
 
 function parseArgs(argv: string[]): Opts {
   const opts: Opts = {
@@ -100,7 +108,7 @@ Examples:
 `)
 }
 
-function reportColor(level: 'error' | 'warn' | 'info'): string {
+function reportColor(level: IssueLevel): string {
   if (!process.stdout.isTTY) return ''
   return level === 'error' ? '\x1b[31m' : level === 'warn' ? '\x1b[33m' : '\x1b[36m'
 }
@@ -142,8 +150,7 @@ function printTerminal(report: Report): void {
     console.log(`  ${green('✓ no issues — your card is clean.')}`)
   } else {
     for (const i of report.issues) {
-      const tag = i.level === 'error' ? 'ERR' : i.level === 'warn' ? 'WRN' : 'INF'
-      console.log(`  ${reportColor(i.level)}${tag}${reset()} ${dim(i.field.padEnd(12))} ${i.message}`)
+      printIssue(i, '  ')
     }
   }
   console.log()
@@ -155,9 +162,13 @@ function printIssuesOnly(report: Report): void {
     return
   }
   for (const i of report.issues) {
-    const tag = i.level === 'error' ? 'ERR' : i.level === 'warn' ? 'WRN' : 'INF'
-    console.log(`${reportColor(i.level)}${tag}${reset()} ${dim(i.field.padEnd(12))} ${i.message}`)
+    printIssue(i)
   }
+}
+
+function printIssue(issue: Issue, indent = ''): void {
+  const tag = ISSUE_TAGS[issue.level]
+  console.log(`${indent}${reportColor(issue.level)}${tag}${reset()} ${dim(issue.field.padEnd(12))} ${issue.message}`)
 }
 
 function printFactsOnly(report: Report): void {
@@ -186,12 +197,6 @@ function printFactsOnly(report: Report): void {
 function fmt(s: string | undefined, withCount = false): string {
   if (!s) return '(none)'
   return withCount ? `${s} ${dim(`(${s.length} chars)`)}` : s
-}
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
-  return `${(n / 1024 / 1024).toFixed(2)} MB`
 }
 
 function truncate(s: string, n: number): string {

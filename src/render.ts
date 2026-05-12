@@ -1,3 +1,4 @@
+import { formatBytes } from './format.ts'
 import type { Report } from './types.ts'
 
 function escapeHtml(s: string | undefined): string {
@@ -432,12 +433,6 @@ function factRow(label: string, value: string, count?: string): string {
 function count(s: string | undefined): string {
   if (!s) return ''
   return `· ${s.length} chars`
-}
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
-  return `${(n / 1024 / 1024).toFixed(2)} MB`
 }
 
 function summaryLine(report: Report): string {
