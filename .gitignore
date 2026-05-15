@@ -6,3 +6,4 @@ dist/
 .env.*
 !.env.example
 .agents/
+skills-resources/
