@@ -15,6 +15,7 @@ npx @hungv47/metaprev http://localhost:3000
 ```
 
 ## What it checks
+<!-- synced: 2026-05-12 -->
 
 | Check | Why |
 |---|---|
@@ -24,7 +25,7 @@ npx @hungv47/metaprev http://localhost:3000
 | `og:image` returns 200 | Catches stale or wrong URLs |
 | Image dimensions | 1200×630 (1.91:1) recommended; flags off-ratio or undersized images |
 | Image file size | Warns past 8 MB (some platforms reject) |
-| `og:image:width` / `:height` | Speeds up first-render on Slack and Discord |
+| `og:image:width` / `:height` | Speeds up first-render on Slack and Discord; warns when declared dimensions do not match the actual image |
 | `twitter:card` | Should be `summary_large_image` for big-image cards |
 | `og:url` / canonical | Helps platforms dedupe shares |
 
@@ -76,12 +77,33 @@ The og:image is embedded as a base64 data URI in the preview HTML, so the browse
 | `-h, --help` | Show help |
 
 ## Exit codes
+<!-- synced: 2026-05-12 -->
 
 - `0` — no errors (warnings allowed)
 - `1` — at least one error-level issue (broken image, missing og:image, etc.)
 - `2` — fetch or runtime failure
 
 Useful in CI: fail the build when og:image breaks.
+
+## Release checks
+<!-- synced: 2026-05-12 -->
+
+Before publishing, run:
+
+```bash
+bun run typecheck
+bun bin/metaprev.ts --version
+npm pack --dry-run
+```
+
+Confirm `metaprev --version` matches `package.json`, then publish with:
+
+```bash
+npm publish --access public
+```
+
+If npm 11 reports `Invalid time value` / `before=null`, check that any
+user-level `min-release-age` config is numeric seconds, not shorthand like `3d`.
 
 ## Agent skill
 

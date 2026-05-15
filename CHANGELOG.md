@@ -1,9 +1,18 @@
 # Changelog
 
+## 0.3.2 — 2026-05-12
+
+### Fixed
+- `metaprev --version` now matches the published package version.
+- Shared byte formatting between terminal and HTML output so image byte display stays consistent.
+
+### Compared to 0.3.1
+- Publish-ready maintenance release for the cleanup pass.
+
 ## 0.3.0 — 2026-05-11
 
 ### Fixed
-- `og:image:width`/`og:image:height` now validated against actual image dimensions. Warns when declared dimensions don't match real file dimensions — Slack and Discord trust the declared values for first-paint and will mis-crop when they doesn't match.
+- `og:image:width`/`og:image:height` now validates against actual image dimensions. Warns when declared dimensions don't match real file dimensions — Slack and Discord trust the declared values for first-paint and will mis-crop when they don't match.
 
 ### Compared to 0.2.0
 - `src/validate.ts`: +18 lines — new dimension consistency check
