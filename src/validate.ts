@@ -43,6 +43,16 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     if (!image.ok) {
       issues.push({ level: 'error', field: 'og:image', message: `Image did not load: ${image.error ?? 'HTTP ' + image.status}` })
     } else {
+      const type = (image.contentType?.split(';')[0] ?? '').trim().toLowerCase()
+      const decoded = !!(image.width && image.height)
+      if (type === 'image/svg+xml') {
+        issues.push({ level: 'warn', field: 'og:image', message: 'og:image is an SVG. Facebook, X, and LinkedIn do not render SVG share images — use PNG, JPEG, or WebP.' })
+      } else if (type && !type.startsWith('image/') && !decoded) {
+        // Only error when the bytes are also undecodable. A real PNG/JPEG/WebP served
+        // with a generic content-type (application/octet-stream is common on S3/R2)
+        // still renders, so a successful decode overrides the content-type smell.
+        issues.push({ level: 'error', field: 'og:image', message: `og:image returned "${type}" and could not be decoded as an image. The URL likely points at an HTML page or error response, which crawlers reject.` })
+      }
       if (image.width && image.height) {
         const ratio = image.width / image.height
         const ratioDelta = Math.abs(ratio - IMAGE_RATIO_OPTIMAL) / IMAGE_RATIO_OPTIMAL

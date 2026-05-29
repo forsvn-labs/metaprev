@@ -23,6 +23,7 @@ npx @hungv47/metaprev http://localhost:3000
 | `og:description` length | 110–160 chars; truncated past ~200 |
 | `og:image` is absolute URL | Crawlers fetch the URL standalone and fail on relative paths |
 | `og:image` returns 200 | Catches stale or wrong URLs |
+| `og:image` content-type | Errors when a non-image response also can't be decoded (URL points at an HTML/error page); warns on SVG (Facebook, X, LinkedIn don't render SVG share images) |
 | Image dimensions | 1200×630 (1.91:1) recommended; flags off-ratio or undersized images |
 | Image file size | Warns past 8 MB (some platforms reject) |
 | `og:image:width` / `:height` | Speeds up first-render on Slack and Discord; warns when declared dimensions do not match the actual image |
@@ -63,7 +64,7 @@ metaprev facts  https://forsvn.com         # just the parsed meta facts (title, 
 metaprev facts  https://forsvn.com --json  # pipe parsed meta into another tool
 ```
 
-The og:image is embedded as a base64 data URI in the preview HTML, so the browser always shows exactly what was just fetched — no stale cached image when you regenerate your OG asset.
+The og:image is embedded as a base64 data URI in the preview HTML, so the browser always shows exactly what was just fetched — no stale cached image when you regenerate your OG asset. The preview has a **light / dark toggle** so you can see how the card looks in each platform's actual theme, and each mock tracks how that platform renders today (X shows the image with a domain overlay and no body text; LinkedIn drops the in-feed description; Discord auto-embeds have no color bar).
 
 ## Options
 

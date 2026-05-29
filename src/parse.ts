@@ -18,15 +18,52 @@ function attrs(raw: string): Record<string, string> {
   return out
 }
 
+// Curated named entities common in titles/descriptions. HTML defines ~2100 named
+// refs; shipping the full table isn't worth the bytes for a meta-tag parser, so this
+// covers punctuation and symbols that actually show up in og:* content. Numeric
+// refs (decimal + hex) are handled generally below.
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
+  nbsp: ' ', ensp: ' ', emsp: ' ', thinsp: ' ',
+  copy: '©', reg: '®', trade: '™',
+  hellip: '…', mdash: '—', ndash: '–', minus: '−',
+  lsquo: '‘', rsquo: '’', sbquo: '‚',
+  ldquo: '“', rdquo: '”', bdquo: '„',
+  laquo: '«', raquo: '»', lsaquo: '‹', rsaquo: '›',
+  bull: '•', middot: '·', dagger: '†', Dagger: '‡',
+  deg: '°', plusmn: '±', times: '×', divide: '÷',
+  euro: '€', pound: '£', cent: '¢', yen: '¥',
+  sect: '§', para: '¶', permil: '‰',
+  frac12: '½', frac14: '¼', frac34: '¾',
+  hearts: '♥', star: '★',
+}
+
+const ENTITY_RE = /&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]*);/gi
+
 function decodeEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&apos;/g, "'")
+  if (!s || s.indexOf('&') === -1) return s
+  return s.replace(ENTITY_RE, (match, body: string) => {
+    if (body[0] === '#') {
+      const cp = body[1] === 'x' || body[1] === 'X'
+        ? parseInt(body.slice(2), 16)
+        : parseInt(body.slice(1), 10)
+      // Skip NUL, out-of-range, and invalid code points; leave the raw text intact.
+      if (!Number.isFinite(cp) || cp < 1 || cp > 0x10ffff) return match
+      try {
+        return String.fromCodePoint(cp)
+      } catch {
+        return match
+      }
+    }
+    // Named refs are case-sensitive in HTML; fall back to the lowercase form so
+    // `&AMP;` / `&Amp;` still resolve for the common entities. Use hasOwn so names
+    // that collide with Object.prototype members (constructor, toString, valueOf, …)
+    // don't resolve up the prototype chain and corrupt the text.
+    if (Object.hasOwn(NAMED_ENTITIES, body)) return NAMED_ENTITIES[body]!
+    const lower = body.toLowerCase()
+    if (Object.hasOwn(NAMED_ENTITIES, lower)) return NAMED_ENTITIES[lower]!
+    return match
+  })
 }
 
 export function parseMeta(html: string): MetaTags {

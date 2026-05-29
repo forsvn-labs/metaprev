@@ -24,7 +24,7 @@ type Opts = {
   insecure: boolean
 }
 
-const VERSION = '0.3.3'
+const VERSION = '0.4.0'
 const SUBCOMMANDS = new Set<Cmd>(['issues', 'facts'])
 const ISSUE_TAGS: Record<IssueLevel, string> = {
   error: 'ERR',
@@ -224,7 +224,12 @@ async function buildReport(opts: Opts): Promise<Report> {
   const page = await fetchPage(opts.url, { insecure: opts.insecure })
   const meta = parseMeta(page.html)
   const imageRef = meta.ogImage ?? meta.twitterImage
-  const image = imageRef ? await probeImage(imageRef, page.finalUrl, { insecure: opts.insecure }) : undefined
+  // The base64 data URI is only embedded in the HTML preview. Skip building it for
+  // issues / facts / --json, where it would be stripped or unused anyway.
+  const withDataUri = opts.cmd === 'preview' && !opts.json
+  const image = imageRef
+    ? await probeImage(imageRef, page.finalUrl, { insecure: opts.insecure, withDataUri })
+    : undefined
   const issues = validate(meta, image)
   return {
     source: opts.url,
