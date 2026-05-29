@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1 — 2026-05-29
+
+### Changed
+- Upgraded `image-size` to v2 (ESM, smaller); the named `imageSize(buf)` import is unchanged.
+- Bundled agent skill (`skills/metaprev/`) updated for 0.4.0 — light/dark toggle, content-type / SVG checks, 2026-accurate platform mocks.
+
+### Docs
+- Rewrote the README around the tool's value propositions ("What you get"), with a numbered quick-start, a Troubleshooting section (bun-missing, self-signed TLS, timeouts), and a Contributing & release section.
+
 ## 0.4.0 — 2026-05-29
 
 ### Added
