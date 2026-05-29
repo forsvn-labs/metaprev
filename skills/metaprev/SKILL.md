@@ -61,8 +61,8 @@ Exit codes: `0` clean, `1` at least one error-level issue, `2` fetch failure. Us
 
 Three issue levels:
 
-- **error** — share is visibly broken. No `og:image`, image returns 404, `og:image` is a relative URL like `/og.png` (most validators fetch the URL standalone and fail), image format unreadable.
-- **warn** — share renders but degraded. Image off the 1.91:1 aspect ratio, image >8MB, char counts way off optimal, image <600px wide.
+- **error** — share is visibly broken. No `og:image`, image returns 404, `og:image` is a relative URL like `/og.png` (most validators fetch the URL standalone and fail), or the URL returns a non-image response that can't be decoded (points at an HTML/error page).
+- **warn** — share renders but degraded. Image off the 1.91:1 aspect ratio, image >8MB, `og:image` is an SVG (Facebook/X/LinkedIn don't render SVG share images), char counts way off optimal, image <600px wide.
 - **info** — optional polish. Missing `og:image:width`/`og:image:height`, no canonical, `twitter:card` not set.
 
 Address errors immediately. Warnings are worth fixing if they apply to the context. Info-level is background noise — leave them unless they're cheap.
@@ -152,11 +152,11 @@ HTTP 200 · fetched 2026-05-10T16:45:13Z
 
 `--json` output has every parsed `og:*` / `twitter:*` tag plus the image probe (status, content-type, byte length, width, height) and a typed `issues[]` array with `level`, `field`, `message`. Useful for piping into scripts or follow-up agents.
 
-The HTML preview has four card mocks (Facebook, X, LinkedIn, Discord/Slack), an Issues panel with a Copy button (copies a markdown-formatted issue list ready for PR comments / Slack), and a Facts panel with every meta tag value and char count.
+The HTML preview has four card mocks (Facebook, X, LinkedIn, Discord/Slack) with a **light/dark toggle** so you see how the card renders in each platform's actual theme. The mocks track how each platform renders today: X shows the image with a domain overlay and no body text, LinkedIn drops the in-feed description, Discord auto-embeds have no color bar. There's a Validation panel and a parsed-meta panel, each with a Copy button (the issues copy is a markdown-formatted list ready for PR comments / Slack).
 
 ## Limitations to know
 
 - Bun must be on `PATH`; users without Bun get a clear error pointing to https://bun.sh/install.
 - Currently parses meta tags via regex on the `<head>` substring. Handles standard cases; pages that use `<base href>` or that emit meta tags outside `<head>` may parse imperfectly. If a page has weird structure, fall back to viewing raw HTML.
-- The preview renders cards using HTML/CSS approximations of each platform — pixel-perfect to the platform style is not the goal; correctness of the meta data is.
+- The preview renders cards using HTML/CSS mocks tuned to each platform's current rendering (2026); they're close but not pixel-perfect — correctness of the meta data is the goal, the mocks are for spotting platform-specific issues at a glance.
 - No JavaScript rendering. If the page sets meta tags via client-side JS (rare; bad practice for shared content), `metaprev` won't see them. Recommend the user emit meta tags server-side / at build.
