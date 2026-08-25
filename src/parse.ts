@@ -13,7 +13,7 @@ function attrs(raw: string): Record<string, string> {
   while ((m = ATTR_RE.exec(raw)) !== null) {
     const key = m[1]?.toLowerCase()
     const value = m[2] ?? m[3] ?? m[4] ?? ''
-    if (key) out[key] = decodeEntities(value)
+    if (key) out[key] = decodeEntities(value).trim()
   }
   return out
 }
@@ -69,9 +69,28 @@ function decodeEntities(s: string): string {
 export function parseMeta(html: string): MetaTags {
   const head = extractHead(html)
   const tags: MetaTags = {}
+  // Open Graph arrays attach structured properties to the root image they follow.
+  // metaprev previews the first image, so later images' dimensions/alt must never
+  // overwrite the selected image's evidence.
+  let selectedOgImageIsActive = false
+  let pendingStructured: Record<string, string> = {}
 
   const titleMatch = TITLE_RE.exec(head)
   if (titleMatch?.[1]) tags.title = decodeEntities(titleMatch[1].trim())
+
+  const selectImage = (content: string): void => {
+    if (!tags.ogImage) {
+      tags.ogImage = content
+      selectedOgImageIsActive = true
+      // Structured props declared before the first root tag belong to it; attach them now.
+      for (const [key, value] of Object.entries(pendingStructured)) assign(tags, key, value)
+      pendingStructured = {}
+    } else {
+      // A second root tag starts a new group the preview does not use.
+      selectedOgImageIsActive = false
+      pendingStructured = {}
+    }
+  }
 
   let m: RegExpExecArray | null
   META_RE.lastIndex = 0
@@ -80,14 +99,28 @@ export function parseMeta(html: string): MetaTags {
     const key = (a['property'] ?? a['name'] ?? '').toLowerCase()
     const content = a['content']
     if (!key || content === undefined) continue
+    if (key === 'og:image') {
+      selectImage(content)
+      continue
+    }
+    if (key === 'og:image:url' || key === 'og:image:secure_url') {
+      selectImage(content)
+      continue
+    }
+    if (key === 'og:image:width' || key === 'og:image:height' || key === 'og:image:alt') {
+      if (selectedOgImageIsActive) assign(tags, key, content)
+      else if (!tags.ogImage) pendingStructured[key] ??= content
+      continue
+    }
     assign(tags, key, content)
   }
 
   LINK_RE.lastIndex = 0
   while ((m = LINK_RE.exec(head)) !== null) {
     const a = attrs(m[1] ?? '')
-    if ((a['rel'] ?? '').toLowerCase() === 'canonical' && a['href']) {
-      tags.canonical = a['href']
+    const rels = (a['rel'] ?? '').toLowerCase().split(/\s+/)
+    if (rels.includes('canonical') && a['href']) {
+      tags.canonical ??= a['href']
     }
   }
 
@@ -107,6 +140,9 @@ function assign(tags: MetaTags, key: string, value: string): void {
     case 'og:site_name':
       tags.ogSiteName = value
       break
+    case 'og:type':
+      tags.ogType = value
+      break
     case 'og:title':
       tags.ogTitle = value
       break
@@ -116,16 +152,14 @@ function assign(tags: MetaTags, key: string, value: string): void {
     case 'og:url':
       tags.ogUrl = value
       break
-    case 'og:image':
-    case 'og:image:url':
-    case 'og:image:secure_url':
-      tags.ogImage ??= value
-      break
     case 'og:image:width':
       tags.ogImageWidth = value
       break
     case 'og:image:height':
       tags.ogImageHeight = value
+      break
+    case 'og:image:alt':
+      tags.ogImageAlt = value
       break
     case 'twitter:card':
       tags.twitterCard = value
@@ -142,6 +176,9 @@ function assign(tags: MetaTags, key: string, value: string): void {
     case 'twitter:image':
     case 'twitter:image:src':
       tags.twitterImage ??= value
+      break
+    case 'twitter:image:alt':
+      tags.twitterImageAlt = value
       break
   }
 }

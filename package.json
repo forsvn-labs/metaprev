@@ -1,17 +1,17 @@
 {
-  "name": "@hungv47/metaprev",
-  "version": "0.4.1",
-  "description": "Preview your OpenGraph cards locally. Fetches a URL, validates meta tags + image dimensions, opens a side-by-side mock of how the link renders on Facebook, X, LinkedIn, and Discord.",
+  "name": "@forsvn/metaprev",
+  "version": "0.5.0",
+  "description": "Preview, inspect, and repair Open Graph cards locally with actionable validation and copy-ready fixes.",
   "type": "module",
   "license": "MIT",
   "author": "Le Vinh Hung <levinhhungg@gmail.com>",
-  "homepage": "https://github.com/hungv47/metaprev",
+  "homepage": "https://github.com/forsvn-labs/metaprev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hungv47/metaprev.git"
+    "url": "git+https://github.com/forsvn-labs/metaprev.git"
   },
   "bugs": {
-    "url": "https://github.com/hungv47/metaprev/issues"
+    "url": "https://github.com/forsvn-labs/metaprev/issues"
   },
   "keywords": [
     "opengraph",

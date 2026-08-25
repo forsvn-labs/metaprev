@@ -3,10 +3,12 @@ export type MetaTags = {
   description?: string
   canonical?: string
   ogSiteName?: string
+  ogType?: string
   ogTitle?: string
   ogDescription?: string
   ogUrl?: string
   ogImage?: string
+  ogImageAlt?: string
   ogImageWidth?: string
   ogImageHeight?: string
   twitterCard?: string
@@ -14,6 +16,7 @@ export type MetaTags = {
   twitterTitle?: string
   twitterDescription?: string
   twitterImage?: string
+  twitterImageAlt?: string
 }
 
 export type ImageProbe = {
@@ -22,6 +25,7 @@ export type ImageProbe = {
   status: number
   ok: boolean
   contentType?: string
+  detectedContentType?: string
   byteLength?: number
   width?: number
   height?: number
@@ -34,8 +38,12 @@ export type ImageProbe = {
 
 export type Issue = {
   level: 'error' | 'warn' | 'info'
+  code: string
   field: string
   message: string
+  impact: string
+  evidence: string
+  fix: string
 }
 
 export type Report = {
@@ -45,5 +53,8 @@ export type Report = {
   status: number
   meta: MetaTags
   image?: ImageProbe
+  // Preview-only probe when twitter:image differs from og:image. JSON and scoped
+  // commands stay on the original single-image path, so their cost and shape remain stable.
+  twitterImage?: ImageProbe
   issues: Issue[]
 }

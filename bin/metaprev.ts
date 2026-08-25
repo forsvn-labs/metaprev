@@ -4,6 +4,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fetchPage, isLocalUrl, probeImage } from '../src/fetch.ts'
+import { resolvePrimaryInput } from '../src/inputs.ts'
 import { formatBytes } from '../src/format.ts'
 import { parseMeta } from '../src/parse.ts'
 import { renderHtml } from '../src/render.ts'
@@ -24,7 +25,7 @@ type Opts = {
   insecure: boolean
 }
 
-const VERSION = '0.4.1'
+const VERSION = '0.5.0'
 const SUBCOMMANDS = new Set<Cmd>(['issues', 'facts'])
 const ISSUE_TAGS: Record<IssueLevel, string> = {
   error: 'ERR',
@@ -70,7 +71,14 @@ function parseArgs(argv: string[]): Opts {
         opts.output = argv[++i]
         break
       default:
-        if (a && !a.startsWith('-')) positional.push(a)
+        if (a && !a.startsWith('-')) {
+          positional.push(a)
+          break
+        }
+        // Unknown flags are user errors — fail loudly instead of silently ignoring.
+        console.error(`metaprev: unknown option '${a}'`)
+        console.error('  run `metaprev --help` to see available options')
+        process.exit(2)
     }
   }
   if (positional[0] && SUBCOMMANDS.has(positional[0] as Cmd)) {
@@ -131,8 +139,8 @@ function green(s: string): string {
 
 function printTerminal(report: Report): void {
   const m = report.meta
-  const title = m.ogTitle ?? m.twitterTitle ?? m.title ?? '(none)'
-  const desc = m.ogDescription ?? m.twitterDescription ?? m.description ?? '(none)'
+  const title = resolvePrimaryInput(m, 'title').value ?? '(none)'
+  const desc = resolvePrimaryInput(m, 'description').value ?? '(none)'
   console.log()
   console.log(bold(`metaprev — ${report.finalUrl}`))
   console.log(dim(`HTTP ${report.status} · fetched ${report.fetchedAt}`))
@@ -169,12 +177,16 @@ function printIssuesOnly(report: Report): void {
 function printIssue(issue: Issue, indent = ''): void {
   const tag = ISSUE_TAGS[issue.level]
   console.log(`${indent}${reportColor(issue.level)}${tag}${reset()} ${dim(issue.field.padEnd(12))} ${issue.message}`)
+  const detailIndent = `${indent}    `
+  console.log(`${detailIndent}${dim('impact')}   ${issue.impact}`)
+  console.log(`${detailIndent}${dim('evidence')} ${issue.evidence}`)
+  console.log(`${detailIndent}${dim('fix')}      ${issue.fix}`)
 }
 
 function printFactsOnly(report: Report): void {
   const m = report.meta
-  const title = m.ogTitle ?? m.twitterTitle ?? m.title
-  const desc = m.ogDescription ?? m.twitterDescription ?? m.description
+  const title = resolvePrimaryInput(m, 'title').value
+  const desc = resolvePrimaryInput(m, 'description').value
   const rows: Array<[string, string]> = [
     ['source', report.source],
     ['final url', report.finalUrl],
@@ -204,7 +216,7 @@ function truncate(s: string, n: number): string {
 }
 
 function openInBrowser(file: string): void {
-  const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'
+  const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'explorer.exe' : 'xdg-open'
   try {
     spawn(cmd, [file], { stdio: 'ignore', detached: true }).unref()
   } catch {}
@@ -213,23 +225,32 @@ function openInBrowser(file: string): void {
 // Strip the embedded image bytes from --json output. They're only useful for the
 // HTML preview and would otherwise bloat piped output by ~100KB+.
 function stripDataUri(report: Report): Report {
-  if (!report.image?.dataUri) return report
-  const image: ImageProbe = { ...report.image }
-  delete image.dataUri
-  return { ...report, image }
+  const clean = (probe: ImageProbe | undefined): ImageProbe | undefined => {
+    if (!probe?.dataUri) return probe
+    const image = { ...probe }
+    delete image.dataUri
+    return image
+  }
+  return { ...report, image: clean(report.image), twitterImage: clean(report.twitterImage) }
 }
 
 async function buildReport(opts: Opts): Promise<Report> {
   const fetchedAt = new Date().toISOString()
   const page = await fetchPage(opts.url, { insecure: opts.insecure })
   const meta = parseMeta(page.html)
-  const imageRef = meta.ogImage ?? meta.twitterImage
+  const imageRef = meta.ogImage
   // The base64 data URI is only embedded in the HTML preview. Skip building it for
   // issues / facts / --json, where it would be stripped or unused anyway.
   const withDataUri = opts.cmd === 'preview' && !opts.json
-  const image = imageRef
-    ? await probeImage(imageRef, page.finalUrl, { insecure: opts.insecure, withDataUri })
-    : undefined
+  const imagePromise = imageRef
+    ? probeImage(imageRef, page.finalUrl, { insecure: opts.insecure, withDataUri })
+    : Promise.resolve(undefined)
+  // A distinct twitter:image affects only the visual X preview. Probe it only for the
+  // browser workspace; scoped and JSON commands keep their original single request.
+  const twitterImagePromise = withDataUri && meta.twitterImage && meta.twitterImage !== meta.ogImage
+    ? probeImage(meta.twitterImage, page.finalUrl, { insecure: opts.insecure, withDataUri: true })
+    : Promise.resolve(undefined)
+  const [image, twitterImage] = await Promise.all([imagePromise, twitterImagePromise])
   const issues = validate(meta, image)
   return {
     source: opts.url,
@@ -238,6 +259,7 @@ async function buildReport(opts: Opts): Promise<Report> {
     status: page.status,
     meta,
     image,
+    twitterImage,
     issues,
   }
 }
@@ -254,7 +276,8 @@ async function main(): Promise<void> {
     if (opts.cmd !== 'preview') {
       console.error(`metaprev: '${opts.cmd}' needs a URL argument`)
       console.error(`  example: metaprev ${opts.cmd} https://example.com`)
-      process.exit(2)
+      process.exitCode = 2
+      return
     }
     help()
     return
@@ -273,7 +296,8 @@ async function main(): Promise<void> {
     if (/self[ -]?signed|certificate|unable to verify/i.test(msg) && !opts.insecure && !isLocalUrl(opts.url)) {
       console.error(`  hint: rerun with --insecure to skip TLS verification (auto-on for *.localhost / *.test / 127.0.0.1)`)
     }
-    process.exit(2)
+    process.exitCode = 2
+    return
   }
 
   const hasError = report.issues.some((i) => i.level === 'error')
@@ -284,7 +308,8 @@ async function main(): Promise<void> {
     } else {
       printIssuesOnly(report)
     }
-    process.exit(hasError ? 1 : 0)
+    process.exitCode = hasError ? 1 : 0
+    return
   }
 
   if (opts.cmd === 'facts') {
@@ -306,6 +331,7 @@ async function main(): Promise<void> {
   // default: full preview
   if (opts.json) {
     process.stdout.write(JSON.stringify(stripDataUri(report), null, 2) + '\n')
+    process.exitCode = hasError ? 1 : 0
     return
   }
 
@@ -317,11 +343,11 @@ async function main(): Promise<void> {
   console.log(`  ${dim('preview →')} ${outFile}`)
   if (opts.open) openInBrowser(outFile)
 
-  process.exit(hasError ? 1 : 0)
+  process.exitCode = hasError ? 1 : 0
 }
 
 main().catch((err) => {
   console.error('metaprev: unexpected error')
   console.error(err)
-  process.exit(2)
+  process.exitCode = 2
 })

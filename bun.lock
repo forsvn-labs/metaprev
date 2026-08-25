@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@hungv47/metaprev",
+      "name": "@forsvn/metaprev",
       "dependencies": {
         "image-size": "^2",
       },

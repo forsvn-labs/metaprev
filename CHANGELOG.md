@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.0 — 2026-08-23
+
+### Added
+- Responsive local repair workspace with separate Open Graph and X input resolution, representative platform cards, source-fallback labels, and cover-versus-fit crop inspection.
+- Actionable issue objects with stable `code`, `impact`, `evidence`, and `fix` fields. Existing `level`, `field`, and `message` JSON keys remain compatible.
+- Reviewable, copy-ready metadata starting point, repair brief, and guarded coding-agent prompt. Missing facts remain explicit comments instead of invented values.
+- `og:type`, `og:image:alt`, and `twitter:image:alt` parsing, plus validation for required Open Graph fields and image alternative text.
+- Focused local HTTP, CLI exit-code, fallback, render, crop, and injection regression coverage.
+
+### Changed
+- Removed generic title and description length advice. metaprev now reports observed breakage and compatibility risk instead of encouraging padded copy.
+- Image guidance now cites first-party Open Graph and LinkedIn requirements. File-size warnings use LinkedIn's documented 5 MB sharing-module limit.
+- A distinct `twitter:image` is fetched only for the interactive preview. Scoped and JSON commands keep the single-image, non-base64 path.
+- Full-preview `--json` now follows the CI exit contract (`1` when the report contains errors), and JSON paths flush stdout before returning so large reports stay complete.
+- Non-success and explicitly non-HTML page responses are runtime failures (exit `2`) instead of producing misleading missing-tag reports.
+- Platform cards are labeled as representative because experiments, viewport differences, and caches can change the final unfurl.
+
+### Security
+- Generated reports use a per-report Content Security Policy nonce, escape all page-controlled values, admit only strict raster data URIs into image styles, and never embed SVG.
+- Image probes reject non-HTTP(S) protocols before fetching. Repair snippets leave localhost and private-network URLs as review comments instead of presenting them as public metadata.
+- Multi-image parsing keeps structured width, height, and alt evidence attached to the selected first `og:image`.
+
 ## 0.4.1 — 2026-05-29
 
 ### Changed

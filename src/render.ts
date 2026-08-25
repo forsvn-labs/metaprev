@@ -1,4 +1,7 @@
 import { formatBytes } from './format.ts'
+import { CARD_SUMMARY, resolvePlatformInput, resolvePrimaryInput } from './inputs.ts'
+import { buildAgentPrompt, buildFindingsText, buildMetaSnippet, buildRepairBrief, resolveInputs } from './repair.ts'
+import type { ImageProbe } from './types.ts'
 import type { Report } from './types.ts'
 
 /*
@@ -35,8 +38,49 @@ function host(url: string | undefined): string {
   }
 }
 
+function safeHttpHref(value: string): string {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? escapeHtml(url.toString()) : '#'
+  } catch {
+    return '#'
+  }
+}
+
 function pluralize(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? '' : 's'}`
+}
+
+function safeDataUri(value: string | undefined): string {
+  if (!value) return ''
+  return /^data:image\/(?:png|jpeg|webp|gif|avif);base64,[a-z0-9+/=]+$/i.test(value)
+    ? escapeHtml(value)
+    : ''
+}
+
+function sourceLabel(values: Array<string | undefined>): string {
+  return values.filter(Boolean).join(' · ')
+}
+
+function cropEvidence(image: ImageProbe | undefined): string {
+  if (!image?.width || !image.height) return 'Crop cannot be calculated without decoded dimensions.'
+  const ratio = image.width / image.height
+  const target = 1200 / 630
+  if (Math.abs(ratio - target) / target <= 0.02) return 'Fits the 1.91:1 frame with no material crop.'
+  if (ratio < target) return `Cover mode hides about ${Math.round((1 - ratio / target) * 100)}% of the image height across the top and bottom.`
+  return `Cover mode hides about ${Math.round((1 - target / ratio) * 100)}% of the image width across the left and right edges.`
+}
+
+type CardParts = {
+  host: string
+  site: string
+  title: string
+  desc: string
+  cssImage: string
+  hasImage: boolean
+  missingText: string
+  alt: string
+  compact?: boolean
 }
 
 type Level = 'error' | 'warn' | 'info'
@@ -57,18 +101,47 @@ const MARKS = {
 
 export function renderHtml(report: Report): string {
   const m = report.meta
-  const title = m.ogTitle ?? m.twitterTitle ?? m.title ?? ''
-  const desc = m.ogDescription ?? m.twitterDescription ?? m.description ?? ''
-  const declaredImage = m.ogImage ?? m.twitterImage
+  const title = resolvePrimaryInput(m, 'title').value ?? ''
   const pageHost = host(report.finalUrl)
   const siteName = m.ogSiteName || pageHost
+  const ogProbe = m.ogImage ? report.image : undefined
+  const xProbe = m.twitterImage
+    ? (m.twitterImage === m.ogImage ? report.image : report.twitterImage ?? (!m.ogImage ? report.image : undefined))
+    : report.image
+  const ogCssImage = safeDataUri(ogProbe?.dataUri)
+  const xCssImage = safeDataUri(xProbe?.dataUri)
 
-  // Only the data URI we built and validated is allowed into the CSS url() context.
-  // A failed probe must never put an attacker-controlled remote URL into inline CSS —
-  // it falls back to the honest "didn't load" placeholder instead.
-  const cssImage = report.image?.dataUri ? escapeHtml(report.image.dataUri) : ''
-  const hasImage = cssImage !== ''
-  const missingText = declaredImage ? 'Image failed to load' : 'No og:image'
+  const baseCard = {
+    host: escapeHtml(pageHost),
+    site: escapeHtml(siteName),
+  }
+  const ogCard: CardParts = {
+    ...baseCard,
+    title: escapeHtml(resolvePlatformInput(m, 'Open Graph', 'title').value || '(no title)'),
+    desc: escapeHtml(resolvePlatformInput(m, 'Open Graph', 'description').value ?? ''),
+    cssImage: ogCssImage,
+    hasImage: ogCssImage !== '',
+    missingText: m.ogImage ? 'Image failed to load' : 'No og:image',
+    alt: escapeHtml(m.ogImageAlt ?? 'Share image preview'),
+  }
+  const xCard: CardParts = {
+    ...baseCard,
+    title: escapeHtml(resolvePlatformInput(m, 'X', 'title').value || '(no title)'),
+    desc: escapeHtml(resolvePlatformInput(m, 'X', 'description').value ?? ''),
+    cssImage: xCssImage,
+    hasImage: xCssImage !== '',
+    missingText: m.twitterImage || m.ogImage ? 'Image failed to load' : 'No card image',
+    alt: escapeHtml(m.twitterImageAlt ?? m.ogImageAlt ?? 'Share image preview'),
+    compact: m.twitterCard === CARD_SUMMARY,
+  }
+  const ogSources = sourceLabel([
+    m.ogTitle ? 'og:title' : m.title ? '<title> fallback' : undefined,
+    m.ogImage ? 'og:image' : 'no OG image',
+  ])
+  const xSources = sourceLabel([
+    m.twitterTitle ? 'twitter:title' : m.ogTitle ? 'OG title fallback' : '<title> fallback',
+    m.twitterImage ? 'twitter:image' : m.ogImage ? 'OG image fallback' : 'no image',
+  ])
 
   const errorCount = report.issues.filter((i) => i.level === 'error').length
   const warnCount = report.issues.filter((i) => i.level === 'warn').length
@@ -83,39 +156,43 @@ export function renderHtml(report: Report): string {
         ? { kind: 'info', label: pluralize(infoCount, 'note') }
         : { kind: 'ok', label: 'All clear' }
 
-  const card = {
-    host: escapeHtml(pageHost),
-    site: escapeHtml(siteName),
-    title: escapeHtml(title || '(no title)'),
-    desc: escapeHtml(desc),
-    cssImage,
-    hasImage,
-    missingText,
-  }
-
   const dims = report.image?.width && report.image?.height
     ? `${report.image.width} × ${report.image.height} px`
     : report.image?.error
       ? `Failed: ${report.image.error}`
       : undefined
   const ctype = report.image?.contentType?.split(';')[0]?.trim()
+  const detectedType = report.image?.detectedContentType
   const bytes = report.image?.byteLength != null ? formatBytes(report.image.byteLength) : undefined
+  const ratio = report.image?.width && report.image.height
+    ? `${(report.image.width / report.image.height).toFixed(2)}:1`
+    : undefined
+  const crop = cropEvidence(report.image)
+  const resolvedInputs = resolveInputs(report)
+  const metaSnippet = buildMetaSnippet(report)
+  const agentPrompt = buildAgentPrompt(report)
 
   const issuesHtml = report.issues
     .map(
-      (i) => `
+      (i, index) => `
         <li class="issue issue--${i.level}">
           <span class="issue__icon" aria-hidden="true">${ISSUE_ICONS[i.level as Level]}</span>
           <div class="issue__body">
-            <span class="issue__field">${escapeHtml(i.field)}</span>
+            <span class="issue__field">${String(index + 1).padStart(2, '0')} · ${escapeHtml(i.level)} · ${escapeHtml(i.field)}</span>
             <p class="issue__msg">${escapeHtml(i.message)}</p>
+            <dl class="issue__details">
+              <div><dt>Impact</dt><dd>${escapeHtml(i.impact)}</dd></div>
+              <div><dt>Evidence</dt><dd>${escapeHtml(i.evidence)}</dd></div>
+              <div><dt>Fix</dt><dd>${escapeHtml(i.fix)}</dd></div>
+            </dl>
           </div>
         </li>`,
     )
     .join('')
 
   const finalUrlEsc = escapeHtml(report.finalUrl)
-  const href = /^https?:\/\//i.test(report.finalUrl) ? finalUrlEsc : '#'
+  const href = safeHttpHref(report.finalUrl)
+  const scriptNonce = crypto.randomUUID().replace(/-/g, '')
 
   // Single source of truth for the parsed-meta facts — rendered into the panel and
   // formatted into the "Copy" payload from the same list.
@@ -123,11 +200,13 @@ export function renderHtml(report: Report): string {
     { key: 'source', value: report.source },
     { key: 'final url', value: report.finalUrl },
     { key: 'http', value: String(report.status) },
-    { key: 'og:title', value: title || undefined, count: count(title) },
-    { key: 'og:description', value: desc || undefined, count: count(desc) },
-    { key: 'og:image', value: declaredImage },
+    { key: 'og:title', value: m.ogTitle, count: count(m.ogTitle) },
+    { key: 'og:description', value: m.ogDescription, count: count(m.ogDescription) },
+    { key: 'og:image', value: m.ogImage },
     { key: 'image', value: dims },
+    { key: 'ratio', value: ratio },
     { key: 'type', value: ctype },
+    { key: 'detected type', value: detectedType },
     { key: 'bytes', value: bytes },
     { key: 'twitter:card', value: m.twitterCard },
     { key: 'og:site_name', value: m.ogSiteName },
@@ -142,6 +221,7 @@ export function renderHtml(report: Report): string {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
 <meta name="color-scheme" content="light" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'nonce-${scriptNonce}'; connect-src 'none'; base-uri 'none'; form-action 'none'" />
 <title>metaprev · ${escapeHtml(pageHost || title || 'preview')}</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
@@ -214,9 +294,6 @@ export function renderHtml(report: Report): string {
   }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
-  @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-  .rise { animation: rise 0.5s var(--ease) both; }
-
   /* ── Top bar ── */
   .topbar {
     position: sticky; top: 0; z-index: 20;
@@ -266,6 +343,7 @@ export function renderHtml(report: Report): string {
     color: var(--ink); max-width: 24ch;
   }
   .summary__title b { color: var(--accent-2); font-weight: 600; }
+  .summary__lede { max-width: 68ch; margin: 10px 0 0; color: var(--ink-2); font-size: 13.5px; }
   .summary__meta {
     margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px 10px;
     font-family: var(--mono); font-size: 12px; color: var(--ink-2);
@@ -294,6 +372,7 @@ export function renderHtml(report: Report): string {
     font-family: var(--mono); font-size: 11px; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3);
   }
+  .section__support { margin: 5px 0 0; max-width: 68ch; color: var(--ink-2); font-size: 12.5px; }
 
   /* ── Appearance toggle ── */
   .seg {
@@ -386,10 +465,16 @@ export function renderHtml(report: Report): string {
     font-family: system-ui, sans-serif; background: #fff;
   }
   .mock--x .mock__summary .mock__body { padding: 12px 14px; }
+  .mock--x .mock__summary--with-image { display: grid; grid-template-columns: minmax(0, 1fr) 112px; }
+  .mock--x .mock__summary--with-image .mock__thumb {
+    min-height: 112px; border-left: 1px solid #cfd9de;
+    background-color: #eff3f4; background-size: cover; background-position: center;
+  }
   .mock--x .mock__summary .mock__site { font-size: 13px; color: #536471; }
   .mock--x .mock__summary .mock__title { font-size: 15px; font-weight: 700; color: #0f1419; margin: 2px 0 0; -webkit-line-clamp: 2; line-height: 1.3; }
   .mock--x .mock__summary .mock__desc { font-size: 14px; color: #536471; margin: 2px 0 0; -webkit-line-clamp: 2; line-height: 1.3; }
   [data-appearance="dark"] .mock--x .mock__summary { background: #16181c; border-color: #2f3336; }
+  [data-appearance="dark"] .mock--x .mock__summary--with-image .mock__thumb { border-left-color: #2f3336; }
   [data-appearance="dark"] .mock--x .mock__summary .mock__title { color: #e7e9ea; }
   [data-appearance="dark"] .mock--x .mock__summary .mock__site,
   [data-appearance="dark"] .mock--x .mock__summary .mock__desc { color: #71767b; }
@@ -438,6 +523,29 @@ export function renderHtml(report: Report): string {
   }
   .panel__body { padding: 14px 16px; }
 
+  /* neutral image inspection: show the deterministic cover crop beside the whole asset */
+  .asset-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.55fr); gap: 22px; align-items: start; }
+  .asset-views { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .asset-view { margin: 0; min-width: 0; }
+  .asset-frame {
+    aspect-ratio: 1.91 / 1; border-radius: var(--r-sm); border: 1px solid var(--line);
+    background-color: var(--stage); background-position: center; background-repeat: no-repeat;
+    overflow: hidden; display: grid; place-items: center;
+  }
+  .asset-frame--cover { background-size: cover; }
+  .asset-frame--fit { background-size: contain; }
+  .asset-frame--empty { color: var(--ink-3); font: 11px var(--mono); text-transform: uppercase; letter-spacing: .05em; }
+  .asset-view figcaption { margin-top: 7px; color: var(--ink-2); font-size: 11.5px; }
+  .asset-view figcaption b { display: block; color: var(--ink); font: 600 11px var(--mono); }
+  .asset-readout { margin: 0; display: grid; gap: 0; }
+  .asset-readout div { padding: 9px 0; border-bottom: 1px solid var(--line-2); }
+  .asset-readout div:first-child { padding-top: 0; }
+  .asset-readout div:last-child { border: 0; }
+  .asset-readout dt { color: var(--ink-3); font: 600 10.5px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
+  .asset-readout dd { margin: 3px 0 0; color: var(--ink); font-size: 12.5px; overflow-wrap: anywhere; }
+  @media (max-width: 760px) { .asset-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) { .asset-views { grid-template-columns: 1fr; } }
+
   .copy-btn {
     font: inherit; font-family: var(--mono); font-size: 11px; font-weight: 600;
     color: var(--ink-2); background: transparent; border: 1px solid var(--line);
@@ -469,6 +577,10 @@ export function renderHtml(report: Report): string {
   .issue--warn .issue__field { color: var(--warn); }
   .issue--info .issue__field { color: var(--info); }
   .issue__msg { margin: 2px 0 0; font-size: 13px; line-height: 1.42; color: var(--ink); }
+  .issue__details { margin: 8px 0 0; display: grid; gap: 5px; }
+  .issue__details div { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; }
+  .issue__details dt { font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
+  .issue__details dd { margin: 0; color: var(--ink-2); font-size: 12px; line-height: 1.42; }
 
   .clean { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 26px 12px; color: var(--ok); }
   .clean svg { width: 30px; height: 30px; }
@@ -488,6 +600,28 @@ export function renderHtml(report: Report): string {
   .fact__val.is-empty { color: var(--ink-3); font-style: italic; }
   .fact__count { font-family: var(--mono); font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
   @media (max-width: 480px) { .fact { grid-template-columns: 92px minmax(0, 1fr); gap: 10px; } }
+
+  .subhead { margin: 18px 0 8px; padding-top: 16px; border-top: 1px solid var(--line-2); font: 600 10.5px var(--mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: .08em; }
+  .resolved { display: grid; gap: 7px; }
+  .resolved__row { display: grid; grid-template-columns: 84px 78px minmax(0, 1fr); gap: 8px; align-items: baseline; font-size: 11.5px; }
+  .resolved__platform, .resolved__field { font-family: var(--mono); color: var(--ink-3); }
+  .resolved__source { min-width: 0; overflow-wrap: anywhere; color: var(--ink); }
+  .resolved__source b { color: var(--accent-2); font-weight: 600; }
+  @media (max-width: 480px) { .resolved__row { grid-template-columns: 72px 64px minmax(0, 1fr); } }
+
+  .repair { display: grid; gap: 18px; }
+  .repair__head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: center; }
+  .repair__title { margin: 0; font-size: 14px; }
+  .repair__copy { margin: 5px 0 0; color: var(--ink-2); font-size: 12.5px; max-width: 70ch; }
+  .repair__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .repair__outputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .repair__output { min-width: 0; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--paper); overflow: hidden; }
+  .repair__output summary { cursor: pointer; padding: 10px 12px; font: 600 11px var(--mono); color: var(--ink-2); }
+  .repair__output[open] summary { border-bottom: 1px solid var(--line); }
+  .repair__output pre { margin: 0; padding: 12px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.55 var(--mono); color: var(--ink); }
+  .copy-btn--primary { color: var(--surface); background: var(--accent-2); border-color: var(--accent-2); }
+  .copy-btn--primary:hover { color: white; background: var(--accent); border-color: var(--accent); }
+  @media (max-width: 700px) { .repair__head, .repair__outputs { grid-template-columns: 1fr; } .repair__actions { justify-content: flex-start; } }
 
   /* footer */
   .footer { border-top: 1px solid var(--line); }
@@ -516,7 +650,8 @@ export function renderHtml(report: Report): string {
 
   <main>
     <section class="wrap summary rise">
-      <h1 class="summary__title">How <b>${escapeHtml(pageHost || 'your link')}</b> renders when shared</h1>
+      <h1 class="summary__title">Share preview for <b>${escapeHtml(pageHost || 'your link')}</b></h1>
+      <p class="summary__lede">Representative previews built from the metadata and image fetched in this run. Platform UI, experiments, and cached unfurls can differ; the source labels below show every fallback metaprev used.</p>
       <div class="summary__meta">
         <span class="chip chip--muted">HTTP ${escapeHtml(String(report.status))}</span>
         ${dims ? `<span class="chip chip--muted">${escapeHtml(dims)}</span>` : ''}
@@ -530,7 +665,10 @@ export function renderHtml(report: Report): string {
 
     <section class="wrap section">
       <div class="section__head">
-        <h2 class="section__label">Link previews</h2>
+        <div>
+          <h2 class="section__label">Platform workspace</h2>
+          <p class="section__support">Compare the fields each card consumes. X prefers twitter:* values; the other previews use Open Graph. Slack classic unfurls also inspect common Open Graph and X metadata, but their UI is not represented by the Discord card.</p>
+        </div>
         <div class="seg" role="group" aria-label="Preview appearance">
           <button type="button" class="seg__btn" data-appearance-set="light" aria-pressed="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>Light
@@ -542,10 +680,42 @@ export function renderHtml(report: Report): string {
       </div>
       <div class="stage rise" id="stage" data-appearance="light" style="animation-delay:0.06s">
         <div class="grid">
-          ${cardMock('Facebook', 'fb', card, 'Domain · Title · Desc')}
-          ${cardMock('X', 'x', card, card.hasImage ? 'Image + domain only' : 'Summary card')}
-          ${cardMock('LinkedIn', 'li', card, 'No description in feed')}
-          ${cardMock('Discord / Slack', 'dc', card, 'Auto-embed')}
+          ${cardMock('Facebook', 'fb', ogCard, ogSources)}
+          ${cardMock('X', 'x', xCard, xSources)}
+          ${cardMock('LinkedIn', 'li', ogCard, ogSources)}
+          ${cardMock('Discord', 'dc', ogCard, ogSources)}
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap section" aria-labelledby="asset-title">
+      <div class="section__head">
+        <div>
+          <h2 class="section__label" id="asset-title">Image inspection</h2>
+          <p class="section__support">Cover shows the deterministic 1.91:1 crop used by the mocks. Fit keeps the whole asset visible, so edge loss and padding are easy to compare.</p>
+        </div>
+      </div>
+      <div class="panel rise" style="animation-delay:0.1s">
+        <div class="panel__body asset-grid">
+          <div class="asset-views">
+            <figure class="asset-view">
+              <div class="asset-frame asset-frame--cover${ogCssImage ? '' : ' asset-frame--empty'}"${ogCssImage ? ` style="background-image:url('${ogCssImage}')" role="img" aria-label="${escapeHtml(m.ogImageAlt ?? 'Open Graph image shown with a centered cover crop')}"` : ''}>${ogCssImage ? '' : 'No validated OG image'}</div>
+              <figcaption><b>Cover crop</b>Fills a 1.91:1 card frame.</figcaption>
+            </figure>
+            <figure class="asset-view">
+              <div class="asset-frame asset-frame--fit${ogCssImage ? '' : ' asset-frame--empty'}"${ogCssImage ? ` style="background-image:url('${ogCssImage}')" aria-hidden="true"` : ''}>${ogCssImage ? '' : 'No validated OG image'}</div>
+              <figcaption><b>Whole asset</b>Fits inside the same frame.</figcaption>
+            </figure>
+          </div>
+          <dl class="asset-readout">
+            <div><dt>Decoded size</dt><dd>${escapeHtml(dims ?? 'Unknown')}</dd></div>
+            <div><dt>Aspect ratio</dt><dd>${escapeHtml(ratio ?? 'Unknown')} · target 1.91:1</dd></div>
+            <div><dt>Cover result</dt><dd>${escapeHtml(crop)}</dd></div>
+            <div><dt>Response</dt><dd>${escapeHtml([ctype, bytes].filter(Boolean).join(' · ') || 'Unknown')}</dd></div>
+            ${detectedType && detectedType !== ctype ? `<div><dt>Detected bytes</dt><dd>${escapeHtml(detectedType)}</dd></div>` : ''}
+            <div><dt>OG source</dt><dd>${escapeHtml(m.ogImage ?? 'No og:image')}</dd></div>
+            ${m.twitterImage && m.twitterImage !== m.ogImage ? `<div><dt>X override</dt><dd>${escapeHtml(m.twitterImage)}</dd></div>` : ''}
+          </dl>
         </div>
       </div>
     </section>
@@ -559,14 +729,14 @@ export function renderHtml(report: Report): string {
               Validation
               ${totalIssues > 0 ? `<span class="panel__count">${totalIssues}</span>` : ''}
             </span>
-            ${totalIssues > 0 ? copyButton('issues') : ''}
+            ${totalIssues > 0 ? copyButton('issues', 'Copy findings') : ''}
           </div>
           <div class="panel__body">
             ${totalIssues === 0
               ? `<div class="clean">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                  <p>No issues found</p>
-                  <span>Title, description, and image all check out.</span>
+                  <p>No validation issues found</p>
+                  <span>Review the visual crop and source fallbacks before shipping.</span>
                 </div>`
               : `<ul class="issues">${issuesHtml}</ul>`}
           </div>
@@ -578,27 +748,64 @@ export function renderHtml(report: Report): string {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-3)"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
               Parsed meta
             </span>
-            ${copyButton('facts')}
+            ${copyButton('facts', 'Copy facts')}
           </div>
           <div class="panel__body">
             <dl class="facts">
               ${facts.map((f) => factRow(f.key, f.value, f.count)).join('')}
             </dl>
+            <h3 class="subhead">Resolved inputs</h3>
+            <div class="resolved" aria-label="Resolved metadata inputs">
+              ${resolvedInputs.map((input) => `<div class="resolved__row">
+                <span class="resolved__platform">${escapeHtml(input.platform)}</span>
+                <span class="resolved__field">${escapeHtml(input.field)}</span>
+                <span class="resolved__source"><b>${escapeHtml(input.source)}</b>${input.fallback ? ' · fallback' : ''}</span>
+              </div>`).join('')}
+            </div>
           </div>
         </div>
       </div>
     </section>
+
+    <section class="wrap section" aria-labelledby="repair-title">
+      <div class="panel rise" style="animation-delay:0.2s">
+        <div class="panel__body repair">
+          <div class="repair__head">
+            <div>
+              <h2 class="repair__title" id="repair-title">Repair handoff</h2>
+              <p class="repair__copy">Review the safe metadata starting point, then copy the evidence-led brief or guarded coding-agent prompt. Missing facts remain comments instead of invented values.</p>
+            </div>
+            <div class="repair__actions">
+              ${copyButton('snippet', 'Copy metadata')}
+              ${copyButton('repair', 'Copy repair brief')}
+              ${copyButton('agent', 'Copy agent prompt', true)}
+            </div>
+          </div>
+          <div class="repair__outputs">
+            <details class="repair__output" open>
+              <summary>Metadata starting point</summary>
+              <pre><code>${escapeHtml(metaSnippet)}</code></pre>
+            </details>
+            <details class="repair__output">
+              <summary>Coding-agent prompt</summary>
+              <pre>${escapeHtml(agentPrompt)}</pre>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+    <p class="sr-only" id="copy-status" aria-live="polite"></p>
   </main>
 
   <footer class="footer">
     <div class="wrap footer__inner">
       <span>fetched ${escapeHtml(report.fetchedAt)}</span>
-      <span class="footer__brand">rendered by <b>metaprev</b></span>
+      <span class="footer__brand">local report by <b>metaprev</b> · platform caches not inspected</span>
     </div>
   </footer>
 
-  <script id="metaprev-data" type="application/json">${escapeForScriptJson(copyPayloads)}</script>
-  <script>
+  <script id="metaprev-data" type="application/json" nonce="${scriptNonce}">${escapeForScriptJson(copyPayloads)}</script>
+  <script nonce="${scriptNonce}">
     (function () {
       var stage = document.getElementById('stage');
       var segButtons = document.querySelectorAll('[data-appearance-set]');
@@ -613,6 +820,7 @@ export function renderHtml(report: Report): string {
       });
 
       var node = document.getElementById('metaprev-data');
+      var copyStatus = document.getElementById('copy-status');
       var payloads = {};
       try { payloads = JSON.parse((node && node.textContent) || '{}'); } catch (e) {}
       document.addEventListener('click', function (event) {
@@ -622,25 +830,31 @@ export function renderHtml(report: Report): string {
         var text = key && payloads[key];
         if (!text) return;
         var label = btn.querySelector('.copy-btn__label');
+        var originalLabel = label ? label.textContent : null;
         var done = function () {
           btn.setAttribute('data-state', 'copied');
-          var prev = label ? label.textContent : null;
           if (label) label.textContent = 'Copied';
+          if (copyStatus) copyStatus.textContent = (originalLabel || 'Content') + ' copied to clipboard.';
           setTimeout(function () {
             btn.removeAttribute('data-state');
-            if (label && prev !== null) label.textContent = prev;
+            if (label && originalLabel !== null) label.textContent = originalLabel;
           }, 1500);
         };
+        var failed = function () {
+          if (label) label.textContent = 'Copy failed';
+          if (copyStatus) copyStatus.textContent = 'Copy failed. Open the matching output and copy it manually.';
+          setTimeout(function () { if (label && originalLabel !== null) label.textContent = originalLabel; }, 2000);
+        };
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(done, function () { fallback(text, done); });
-        } else { fallback(text, done); }
+          navigator.clipboard.writeText(text).then(done, function () { fallback(text, done, failed); });
+        } else { fallback(text, done, failed); }
       });
-      function fallback(text, done) {
+      function fallback(text, done, failed) {
         var ta = document.createElement('textarea');
         ta.value = text; ta.setAttribute('readonly', '');
         ta.style.position = 'fixed'; ta.style.opacity = '0';
         document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); done(); } catch (e) {} finally { document.body.removeChild(ta); }
+        try { document.execCommand('copy') ? done() : failed(); } catch (e) { failed(); } finally { document.body.removeChild(ta); }
       }
     })();
   </script>
@@ -648,19 +862,9 @@ export function renderHtml(report: Report): string {
 </html>`
 }
 
-type CardParts = {
-  host: string
-  site: string
-  title: string
-  desc: string
-  cssImage: string
-  hasImage: boolean
-  missingText: string
-}
-
 function imgBlock(p: CardParts): string {
   return p.hasImage
-    ? `<div class="mock__img" style="background-image:url('${p.cssImage}')"></div>`
+    ? `<div class="mock__img" style="background-image:url('${p.cssImage}')" role="img" aria-label="${p.alt}"></div>`
     : `<div class="mock__img mock__img--missing">${escapeHtml(p.missingText)}</div>`
 }
 
@@ -676,23 +880,23 @@ function cardMock(label: string, variant: 'fb' | 'x' | 'li' | 'dc', p: CardParts
       </div>
     </div>`
   } else if (variant === 'x') {
-    // Current X timeline: large-image cards show the image with the domain overlaid,
-    // and the title/description are NOT rendered. With no image, X falls back to a
-    // compact summary card that does show the text.
-    mock = p.hasImage
+    // Keep the two declared X card treatments distinct. This is a representative
+    // workspace, not a claim that every account experiment renders pixel-for-pixel.
+    mock = !p.compact && p.hasImage
       ? `<div class="mock mock--x">
           <div class="mock__shot">
-            <div class="mock__img" style="background-image:url('${p.cssImage}')"></div>
+            <div class="mock__img" style="background-image:url('${p.cssImage}')" role="img" aria-label="${p.alt}"></div>
             <span class="mock__domain">${p.host}</span>
           </div>
         </div>`
       : `<div class="mock mock--x">
-          <div class="mock__summary">
+          <div class="mock__summary${p.compact && p.hasImage ? ' mock__summary--with-image' : ''}">
             <div class="mock__body">
               <div class="mock__site">${p.host}</div>
               <div class="mock__title mock__line-clamp">${p.title}</div>
               ${p.desc ? `<div class="mock__desc mock__line-clamp">${p.desc}</div>` : ''}
             </div>
+            ${p.compact && p.hasImage ? `<div class="mock__thumb" style="background-image:url('${p.cssImage}')" role="img" aria-label="${p.alt}"></div>` : ''}
           </div>
         </div>`
   } else if (variant === 'li') {
@@ -717,17 +921,19 @@ function cardMock(label: string, variant: 'fb' | 'x' | 'li' | 'dc', p: CardParts
   return `<article class="card">
     <div class="card__head">
       <span class="card__mark">${MARKS[variant]}</span>
-      <span class="card__name">${escapeHtml(label)}</span>
+      <h3 class="card__name">${escapeHtml(label)}</h3>
       <span class="card__note">${escapeHtml(note)}</span>
     </div>
     ${mock}
   </article>`
 }
 
-function copyButton(target: 'issues' | 'facts'): string {
-  return `<button class="copy-btn" type="button" data-copy-target="${target}">
+type CopyTarget = 'issues' | 'facts' | 'snippet' | 'repair' | 'agent'
+
+function copyButton(target: CopyTarget, label: string, primary = false): string {
+  return `<button class="copy-btn${primary ? ' copy-btn--primary' : ''}" type="button" data-copy-target="${target}">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-    <span class="copy-btn__label">Copy</span>
+    <span class="copy-btn__label">${escapeHtml(label)}</span>
   </button>`
 }
 
@@ -750,10 +956,11 @@ function buildCopyPayloads(report: Report, facts: Fact[]): Record<string, string
   const payloads: Record<string, string> = {}
 
   if (report.issues.length > 0) {
-    const header = `metaprev — ${report.finalUrl}\nfetched ${report.fetchedAt}\n\nIssues (${report.issues.length}):`
-    const lines = report.issues.map((i) => `- [${i.level.toUpperCase()}] ${i.field}: ${i.message}`)
-    payloads.issues = `${header}\n${lines.join('\n')}\n`
+    payloads.issues = buildFindingsText(report)
   }
+  payloads.repair = buildRepairBrief(report)
+  payloads.agent = buildAgentPrompt(report)
+  payloads.snippet = buildMetaSnippet(report)
 
   const width = Math.max(...facts.map((f) => f.key.length))
   payloads.facts = `metaprev — ${report.finalUrl}\n\n${facts
@@ -765,7 +972,9 @@ function buildCopyPayloads(report: Report, facts: Fact[]): Record<string, string
 
 function escapeForScriptJson(payload: unknown): string {
   return JSON.stringify(payload)
-    .replace(/<\/(script)/gi, '<\\/$1')
-    .replace(/<!--/g, '<\\!--')
-    .replace(/-->/g, '--\\>')
+    .replace(/&/g, '\\u0026')
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
 }

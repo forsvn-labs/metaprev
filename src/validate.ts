@@ -1,110 +1,206 @@
+import { CARD_SUMMARY, CARD_SUMMARY_LARGE_IMAGE, isKnownTwitterCard, RENDERED_TWITTER_CARDS } from './inputs.ts'
 import type { ImageProbe, Issue, MetaTags } from './types.ts'
 
-const TITLE_OPTIMAL = [50, 60] as const
-const DESC_OPTIMAL = [110, 160] as const
-const IMAGE_OPTIMAL = { w: 1200, h: 630 } as const
-const IMAGE_RATIO_OPTIMAL = 1200 / 630
-const RATIO_TOLERANCE = 0.05
+const TARGET = { width: 1200, height: 630, ratio: 1200 / 630 } as const
+const RATIO_TOLERANCE = 0.02
+const LINKEDIN_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+
+type Finding = Pick<Issue, 'level' | 'code' | 'field' | 'message' | 'impact' | 'evidence' | 'fix'>
+
+function finding(value: Finding): Issue {
+  return value
+}
+
+function probeEvidence(image: ImageProbe): string {
+  if (image.status > 0) return `The image request returned HTTP ${image.status}.`
+  const error = image.error?.replace(/[\r\n\t]+/g, ' ').slice(0, 180)
+  return error ? `The image probe failed: ${error}.` : 'The image probe did not receive a response.'
+}
+
+function isAbsoluteHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return (url.protocol === 'http:' || url.protocol === 'https:') && Boolean(url.hostname)
+  } catch {
+    return false
+  }
+}
 
 export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[] {
   const issues: Issue[] = []
+  // Open Graph consumers do not generally use twitter:* as a fallback. Validate the
+  // shared OG/page path independently; the X card resolves its own overrides in render.
+  const title = meta.ogTitle ?? meta.title
+  const description = meta.ogDescription ?? meta.description
 
-  const title = meta.ogTitle ?? meta.twitterTitle ?? meta.title
-  if (!title) {
-    issues.push({ level: 'error', field: 'title', message: 'No title found (og:title, twitter:title, or <title>)' })
-  } else {
-    const len = title.length
-    if (len < TITLE_OPTIMAL[0]) {
-      issues.push({ level: 'warn', field: 'title', message: `Title is short (${len} chars). Optimal: ${TITLE_OPTIMAL[0]}–${TITLE_OPTIMAL[1]} chars` })
-    } else if (len > TITLE_OPTIMAL[1]) {
-      issues.push({ level: 'warn', field: 'title', message: `Title is long (${len} chars). Optimal: ${TITLE_OPTIMAL[0]}–${TITLE_OPTIMAL[1]} chars; many platforms truncate after ~70` })
+  if (!title) issues.push(finding({
+    level: 'error', code: 'missing-title', field: 'title', message: 'No share title was found.',
+    impact: 'The card can render without a useful headline or use an unpredictable platform fallback.',
+    evidence: meta.twitterTitle
+      ? 'twitter:title exists for X, but neither og:title nor <title> is present for Open Graph consumers.'
+      : 'Neither og:title nor <title> is present in the fetched HTML.',
+    fix: 'Add a truthful og:title. Also set twitter:title only when X needs different copy.',
+  }))
+  else if (!meta.ogTitle) issues.push(finding({
+    level: 'warn', code: 'missing-og-title', field: 'og:title', message: 'The Open Graph title is missing.',
+    impact: 'Consumers that do not use page-title or X-tag fallbacks can omit the intended headline.',
+    evidence: 'The preview falls back to <title>; the Open Graph protocol lists og:title as required metadata.',
+    fix: 'Add og:title with the existing truthful share title.',
+  }))
+
+  if (!description) issues.push(finding({
+    level: 'error', code: 'missing-description', field: 'description', message: 'No share description was found.',
+    impact: 'Cards that show supporting copy will have no context below the title.',
+    evidence: meta.twitterDescription
+      ? 'twitter:description exists for X, but neither og:description nor meta description is present for Open Graph consumers.'
+      : 'Neither og:description nor meta description is present in the fetched HTML.',
+    fix: 'Add a concise, factual og:description. Do not pad it to meet an arbitrary character target.',
+  }))
+  else if (!meta.ogDescription) issues.push(finding({
+    level: 'warn', code: 'missing-og-description', field: 'og:description', message: 'The Open Graph description is missing.',
+    impact: 'LinkedIn and other Open Graph consumers may omit the supporting copy instead of using a page or X fallback.',
+    evidence: 'The preview falls back to meta description; LinkedIn lists og:description among the tags that must exist for a share preview.',
+    fix: 'Add og:description with the existing concise, factual description.',
+  }))
+
+  if (!meta.ogImage) issues.push(finding({
+    level: 'error', code: 'missing-og-image', field: 'og:image', message: 'No og:image meta tag was found.',
+    impact: 'Facebook, LinkedIn, and chat unfurls can render without a large visual or choose an unrelated fallback.',
+    evidence: 'The fetched HTML has no og:image value.',
+    fix: 'Add an absolute HTTPS og:image URL for the intended share asset.',
+  }))
+  else if (!isAbsoluteHttpUrl(meta.ogImage)) issues.push(finding({
+    level: 'error', code: 'relative-og-image', field: 'og:image', message: 'og:image is not an absolute HTTP(S) URL.',
+    impact: 'A crawler that fetches the image independently may fail to resolve it, leaving the card blank.',
+    evidence: 'The og:image value does not begin with http:// or https://.',
+    fix: 'Resolve the asset against the public site origin and emit the full URL in og:image.',
+  }))
+
+  if (image && !image.ok) issues.push(finding({
+    level: 'error', code: 'image-unreachable', field: 'og:image', message: 'The selected share image did not load.',
+    impact: 'Crawlers cannot render the intended image, so the card will be blank or fall back.',
+    evidence: probeEvidence(image),
+    fix: 'Make the image URL publicly reachable with a 2xx response, then rerun metaprev.',
+  }))
+
+  if (image?.ok) {
+    const contentType = (image.contentType?.split(';')[0] ?? '').trim().toLowerCase()
+    const detectedType = image.detectedContentType?.toLowerCase()
+    const effectiveType = detectedType ?? contentType
+    const decoded = Boolean(image.width && image.height)
+    if (effectiveType === 'image/svg+xml') issues.push(finding({
+      level: 'warn', code: 'svg-image', field: 'og:image', message: 'The share image is SVG.',
+      impact: 'LinkedIn does not list SVG among the formats supported by its sharing module, so rendering is not dependable.',
+      evidence: detectedType === 'image/svg+xml'
+        ? 'The downloaded bytes decode as SVG.'
+        : 'The image response content type is image/svg+xml.',
+      fix: 'Export the asset as PNG or JPEG and update og:image to that file.',
+    }))
+    else if (!decoded) issues.push(finding({
+      level: 'error', code: 'invalid-image-response', field: 'og:image', message: 'The og:image response is not a decodable image.',
+      impact: 'Platforms receive a document or error body instead of an image and cannot build the visual card.',
+      evidence: `The response${contentType ? ` content type is ${contentType} and it` : ''} has no supported image dimensions.`,
+      fix: 'Point og:image at the image file itself and serve it with an image content type.',
+    }))
+
+    if (detectedType && contentType.startsWith('image/') && detectedType !== contentType) issues.push(finding({
+      level: 'warn', code: 'image-type-mismatch', field: 'og:image', message: 'The image response type does not match its bytes.',
+      impact: 'Crawlers that trust the response header can handle the asset differently from clients that sniff its contents.',
+      evidence: `The response declares ${contentType}, but the downloaded bytes decode as ${detectedType}.`,
+      fix: `Serve the asset with Content-Type: ${detectedType}.`,
+    }))
+
+    if (image.width && image.height) {
+      const ratio = image.width / image.height
+      if (Math.abs(ratio - TARGET.ratio) / TARGET.ratio > RATIO_TOLERANCE) issues.push(finding({
+        level: 'warn', code: 'image-ratio', field: 'og:image', message: 'The image does not match the 1.91:1 share frame.',
+        impact: 'Depending on the platform and viewport, the asset can be cropped or padded.',
+        evidence: `The decoded asset is ${image.width}×${image.height}px (${ratio.toFixed(2)}:1); the workspace frame is 1.91:1.`,
+        fix: `Export a ${TARGET.width}×${TARGET.height}px version and keep important content away from the edges.`,
+      }))
+      if (image.width < 1200 || image.height < 627) issues.push(finding({
+        level: 'warn', code: 'image-resolution', field: 'og:image', message: 'The image is below the cross-platform high-resolution target.',
+        impact: 'The card can look soft when enlarged, and the asset falls below LinkedIn’s published sharing-module dimensions.',
+        evidence: `The decoded asset is ${image.width}×${image.height}px; LinkedIn lists 1200×627px for its sharing module.`,
+        fix: `Export at least ${TARGET.width}×${TARGET.height}px without upscaling a low-resolution source.`,
+      }))
     }
+
+    if (image.byteLength != null && image.byteLength > LINKEDIN_IMAGE_MAX_BYTES) issues.push(finding({
+      level: 'warn', code: 'image-file-size', field: 'og:image', message: 'The share image exceeds LinkedIn’s documented file-size limit.',
+      impact: 'LinkedIn may omit the image even when another platform accepts it.',
+      evidence: `The response is ${(image.byteLength / 1024 / 1024).toFixed(2)} MB; LinkedIn’s sharing module lists a 5 MB maximum.`,
+      fix: 'Compress or simplify the image to 5 MB or less while preserving its dimensions.',
+    }))
   }
 
-  const desc = meta.ogDescription ?? meta.twitterDescription ?? meta.description
-  if (!desc) {
-    issues.push({ level: 'error', field: 'description', message: 'No description found (og:description, twitter:description, or meta description)' })
-  } else {
-    const len = desc.length
-    if (len < DESC_OPTIMAL[0]) {
-      issues.push({ level: 'warn', field: 'description', message: `Description is short (${len} chars). Optimal: ${DESC_OPTIMAL[0]}–${DESC_OPTIMAL[1]} chars` })
-    } else if (len > DESC_OPTIMAL[1]) {
-      issues.push({ level: 'warn', field: 'description', message: `Description is long (${len} chars). Optimal: ${DESC_OPTIMAL[0]}–${DESC_OPTIMAL[1]} chars; many platforms truncate after ~200` })
-    }
-  }
+  if (meta.ogImage && !meta.ogImageAlt) issues.push(finding({
+    level: 'info', code: 'missing-image-alt', field: 'og:image:alt', message: 'The share image has no alternative text.',
+    impact: 'People using assistive technology may not receive a useful description when a client exposes image alt text.',
+    evidence: 'og:image exists, but og:image:alt is absent; the Open Graph protocol says an image should include it.',
+    fix: 'Add og:image:alt that describes what is in the image, not marketing copy or a duplicate caption.',
+  }))
 
-  if (!meta.ogImage) {
-    issues.push({ level: 'error', field: 'og:image', message: 'No og:image meta tag' })
-  } else if (!/^https?:\/\//i.test(meta.ogImage)) {
-    issues.push({ level: 'error', field: 'og:image', message: `og:image is not an absolute URL ("${meta.ogImage}"). Many crawlers will fail to fetch it.` })
-  }
-
-  if (image) {
-    if (!image.ok) {
-      issues.push({ level: 'error', field: 'og:image', message: `Image did not load: ${image.error ?? 'HTTP ' + image.status}` })
-    } else {
-      const type = (image.contentType?.split(';')[0] ?? '').trim().toLowerCase()
-      const decoded = !!(image.width && image.height)
-      if (type === 'image/svg+xml') {
-        issues.push({ level: 'warn', field: 'og:image', message: 'og:image is an SVG. Facebook, X, and LinkedIn do not render SVG share images — use PNG, JPEG, or WebP.' })
-      } else if (type && !type.startsWith('image/') && !decoded) {
-        // Only error when the bytes are also undecodable. A real PNG/JPEG/WebP served
-        // with a generic content-type (application/octet-stream is common on S3/R2)
-        // still renders, so a successful decode overrides the content-type smell.
-        issues.push({ level: 'error', field: 'og:image', message: `og:image returned "${type}" and could not be decoded as an image. The URL likely points at an HTML page or error response, which crawlers reject.` })
-      }
-      if (image.width && image.height) {
-        const ratio = image.width / image.height
-        const ratioDelta = Math.abs(ratio - IMAGE_RATIO_OPTIMAL) / IMAGE_RATIO_OPTIMAL
-        if (image.width !== IMAGE_OPTIMAL.w || image.height !== IMAGE_OPTIMAL.h) {
-          const exactRecommended = ratioDelta <= RATIO_TOLERANCE
-          issues.push({
-            level: exactRecommended && image.width >= 600 ? 'info' : 'warn',
-            field: 'og:image',
-            message: `Image is ${image.width}×${image.height}px. Recommended: ${IMAGE_OPTIMAL.w}×${IMAGE_OPTIMAL.h}px (1.91:1).`,
-          })
-        }
-        if (image.width < 600) {
-          issues.push({ level: 'warn', field: 'og:image', message: `Image is small (${image.width}px wide). Most platforms want at least 600px.` })
-        }
-      }
-      if (image.byteLength && image.byteLength > 8 * 1024 * 1024) {
-        issues.push({ level: 'warn', field: 'og:image', message: `Image is ${(image.byteLength / 1024 / 1024).toFixed(1)} MB. Some platforms reject files over 8 MB.` })
-      }
-    }
-  }
-
-  if (meta.ogImage && (!meta.ogImageWidth || !meta.ogImageHeight)) {
-    issues.push({ level: 'info', field: 'og:image', message: 'Missing og:image:width / og:image:height. Optional but speeds up first-render on Slack and Discord.' })
-  }
+  if (meta.ogImage && (!meta.ogImageWidth || !meta.ogImageHeight)) issues.push(finding({
+    level: 'info', code: 'missing-image-dimensions', field: 'og:image', message: 'Declared image dimensions are missing.',
+    impact: 'A crawler cannot know the image shape from metadata before downloading it.',
+    evidence: 'og:image exists, but og:image:width or og:image:height is absent.',
+    fix: 'Add og:image:width and og:image:height using the decoded asset dimensions.',
+  }))
 
   if (image?.ok && image.width && image.height && meta.ogImageWidth && meta.ogImageHeight) {
-    const declaredW = Number(meta.ogImageWidth)
-    const declaredH = Number(meta.ogImageHeight)
-    if (!Number.isFinite(declaredW) || !Number.isFinite(declaredH)) {
-      issues.push({
-        level: 'warn',
-        field: 'og:image',
-        message: `og:image:width/height are not valid integers ("${meta.ogImageWidth}"/"${meta.ogImageHeight}"). Crawlers may ignore them.`,
-      })
-    } else if (Math.abs(declaredW - image.width) > 1 || Math.abs(declaredH - image.height) > 1) {
-      issues.push({
-        level: 'warn',
-        field: 'og:image',
-        message: `Declared og:image:width/height (${declaredW}×${declaredH}) does not match actual image (${image.width}×${image.height}). Slack and Discord trust the declared values for first-paint and will mis-crop.`,
-      })
-    }
+    const validWidth = /^\d+$/.test(meta.ogImageWidth)
+    const validHeight = /^\d+$/.test(meta.ogImageHeight)
+    const declaredWidth = Number(meta.ogImageWidth)
+    const declaredHeight = Number(meta.ogImageHeight)
+    if (!validWidth || !validHeight || declaredWidth <= 0 || declaredHeight <= 0) issues.push(finding({
+      level: 'warn', code: 'invalid-image-dimensions', field: 'og:image', message: 'Declared image dimensions are not positive integers.',
+      impact: 'Crawlers may ignore the dimensions and choose a fallback layout.',
+      evidence: 'At least one of og:image:width or og:image:height is not a positive whole number.',
+      fix: `Set og:image:width to ${image.width} and og:image:height to ${image.height}.`,
+    }))
+    else if (declaredWidth !== image.width || declaredHeight !== image.height) issues.push(finding({
+      level: 'warn', code: 'image-dimension-mismatch', field: 'og:image', message: 'Declared image dimensions do not match the fetched asset.',
+      impact: 'A crawler can reserve the wrong frame before the image loads, causing a layout or crop mismatch.',
+      evidence: `Metadata declares ${declaredWidth}×${declaredHeight}px; the decoded asset is ${image.width}×${image.height}px.`,
+      fix: `Update the tags to ${image.width}×${image.height}, or replace the asset with the declared size.`,
+    }))
   }
 
-  if (!meta.twitterCard) {
-    issues.push({ level: 'info', field: 'twitter:card', message: 'No twitter:card meta tag. Use "summary_large_image" for big-image cards.' })
-  } else if (meta.twitterCard !== 'summary_large_image' && meta.twitterCard !== 'summary') {
-    issues.push({ level: 'info', field: 'twitter:card', message: `twitter:card is "${meta.twitterCard}" — unusual; expected "summary_large_image" or "summary".` })
-  }
+  if (!meta.twitterCard) issues.push(finding({
+    level: 'info', code: 'missing-twitter-card', field: 'twitter:card', message: 'No twitter:card meta tag was found.',
+    impact: 'X must infer a card treatment instead of following an explicit choice.',
+    evidence: 'The fetched HTML has no twitter:card value.',
+    fix: `Add twitter:card="${CARD_SUMMARY_LARGE_IMAGE}" for a wide image card, or "${CARD_SUMMARY}" for a compact card.`,
+  }))
+  else if (!isKnownTwitterCard(meta.twitterCard) || !RENDERED_TWITTER_CARDS.has(meta.twitterCard)) issues.push(finding({
+    level: 'info', code: 'unusual-twitter-card', field: 'twitter:card', message: 'twitter:card uses an uncommon value.',
+    impact: 'The X preview may not match either card treatment shown in this workspace.',
+    evidence: 'The value is neither summary_large_image nor summary.',
+    fix: 'Use summary_large_image or summary unless the page intentionally targets another supported card type.',
+  }))
 
-  if (!meta.ogUrl && !meta.canonical) {
-    issues.push({ level: 'info', field: 'og:url', message: 'No og:url or canonical link. Helps with deduping shares.' })
-  }
+  const canonical = meta.ogUrl ?? meta.canonical
+  if (!canonical) issues.push(finding({
+    level: 'info', code: 'missing-canonical-url', field: 'og:url', message: 'No canonical share URL was found.',
+    impact: 'Shares of tracking or alternate URLs can be treated as separate pages.',
+    evidence: 'Neither og:url nor a canonical link is present in the fetched HTML.',
+    fix: 'Add og:url or a canonical link that points to the preferred public page URL.',
+  }))
+  else if (!isAbsoluteHttpUrl(canonical)) issues.push(finding({
+    level: 'warn', code: 'invalid-canonical-url', field: meta.ogUrl ? 'og:url' : 'canonical', message: 'The canonical share URL is not an absolute HTTP(S) URL.',
+    impact: 'A crawler may fail to identify the permanent page URL or may treat alternate URLs as separate shares.',
+    evidence: `${meta.ogUrl ? 'og:url' : 'The canonical link'} is present but is not a valid absolute HTTP(S) URL.`,
+    fix: `Replace ${meta.ogUrl ? 'og:url' : 'the canonical link'} with the preferred absolute public page URL.`,
+  }))
 
-  return issues
+  if (!meta.ogType) issues.push(finding({
+    level: 'info', code: 'missing-og-type', field: 'og:type', message: 'The Open Graph object type is missing.',
+    impact: 'Consumers must infer the page type instead of receiving an explicit Open Graph object type.',
+    evidence: 'The fetched HTML has no og:type; the Open Graph protocol lists it as required metadata.',
+    fix: 'Add og:type="website" for a general page, or the correct specific type such as "article".',
+  }))
+
+  const rank = { error: 0, warn: 1, info: 2 } as const
+  return issues.sort((a, b) => rank[a.level] - rank[b.level])
 }

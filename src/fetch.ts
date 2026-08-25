@@ -1,16 +1,12 @@
 import { imageSize } from 'image-size'
+import { classifyUrlHost } from './host.ts'
 import type { ImageProbe } from './types.ts'
 
-const UA = 'metaprev/0.1 (+https://github.com/hungv47/metaprev)'
+const UA = 'metaprev (+https://github.com/forsvn-labs/metaprev)'
 
-const LOCAL_HOST_RE = /^(localhost|.+\.localhost|.+\.test|127\.0\.0\.1|0\.0\.0\.0|::1)$/i
-
+// Fetch policy: local dev targets stay fetchable — that is the product's job.
 export function isLocalUrl(url: string): boolean {
-  try {
-    return LOCAL_HOST_RE.test(new URL(url).hostname)
-  } catch {
-    return false
-  }
+  return classifyUrlHost(url).isLocalDevHost
 }
 
 type FetchOpts = { insecure?: boolean }
@@ -21,8 +17,8 @@ type ProbeOpts = FetchOpts & { withDataUri?: boolean }
 // or never-ending responses.
 const MAX_HTML_BYTES = 4 * 1024 * 1024
 
-// Cap image downloads too. Real og:images sit well under the 8 MB platform limit; this
-// only bounds memory against a hostile or misconfigured multi-hundred-MB response.
+// Cap image downloads too. This is a memory-safety ceiling, not a platform limit;
+// validation applies the current platform-specific threshold separately.
 const MAX_IMAGE_BYTES = 32 * 1024 * 1024
 
 function tlsOpt(url: string, opts: FetchOpts): { rejectUnauthorized: false } | undefined {
@@ -38,9 +34,16 @@ function timeoutError(err: unknown, ctrl: AbortController, timeoutMs: number): E
 
 // Read a response body up to a byte cap, cancelling the stream once exceeded. Returns the
 // bytes (sliced to the cap) plus whether more data was left unread.
-async function readCappedBytes(res: Response, maxBytes: number): Promise<{ bytes: Buffer; truncated: boolean }> {
+export async function readCappedBytes(res: Response, maxBytes: number): Promise<{ bytes: Buffer; truncated: boolean }> {
   const body = res.body
   if (!body) {
+    // Null-body path: there is no stream to cap mid-flight, so the only safe bound
+    // is the declared length. A missing or oversized Content-Length is rejected
+    // rather than read into memory unbounded.
+    const declaredLen = Number(res.headers.get('content-length'))
+    if (res.headers.get('content-length') === null || !Number.isFinite(declaredLen) || declaredLen < 0 || declaredLen > maxBytes) {
+      throw new Error(`Response body has no readable stream and ${res.headers.get('content-length') !== null ? 'declares more than' : 'does not declare'} the readable size limit`)
+    }
     const all = Buffer.from(await res.arrayBuffer())
     return { bytes: all.subarray(0, maxBytes), truncated: all.byteLength > maxBytes }
   }
@@ -96,6 +99,16 @@ type PageResult = {
 }
 
 export async function fetchPage(url: string, opts: FetchOpts = {}, timeoutMs = 10_000): Promise<PageResult> {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new Error('Invalid page URL')
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Page URL must use HTTP or HTTPS')
+  }
+
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
@@ -106,6 +119,15 @@ export async function fetchPage(url: string, opts: FetchOpts = {}, timeoutMs = 1
       signal: ctrl.signal,
       tls: tlsOpt(url, opts),
     })
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => {})
+      throw new Error(`page returned HTTP ${res.status}`)
+    }
+    const contentType = (res.headers.get('content-type') ?? '').split(';')[0]!.trim().toLowerCase()
+    if (contentType && contentType !== 'text/html' && contentType !== 'application/xhtml+xml') {
+      await res.body?.cancel().catch(() => {})
+      throw new Error(`page returned ${contentType}, not HTML`)
+    }
     const html = await readCapped(res, MAX_HTML_BYTES)
     return { finalUrl: res.url || url, status: res.status, html }
   } catch (err) {
@@ -118,7 +140,11 @@ export async function fetchPage(url: string, opts: FetchOpts = {}, timeoutMs = 1
 export async function probeImage(url: string, base: string, opts: ProbeOpts = {}, timeoutMs = 10_000): Promise<ImageProbe> {
   let resolved = url
   try {
-    resolved = new URL(url, base).toString()
+    const parsed = new URL(url, base)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return { url, resolved: parsed.toString(), status: 0, ok: false, error: 'Image URL must use HTTP or HTTPS' }
+    }
+    resolved = parsed.toString()
   } catch {
     return { url, resolved: url, status: 0, ok: false, error: 'Invalid image URL' }
   }
@@ -153,6 +179,11 @@ export async function probeImage(url: string, base: string, opts: ProbeOpts = {}
       const dims = imageSize(buf)
       probe.width = dims.width
       probe.height = dims.height
+      const detectedMime: Record<string, string> = {
+        avif: 'image/avif', gif: 'image/gif', jpg: 'image/jpeg', png: 'image/png',
+        svg: 'image/svg+xml', webp: 'image/webp',
+      }
+      probe.detectedContentType = dims.type ? detectedMime[dims.type] : undefined
     } catch (err) {
       probe.error = `Could not read image dimensions: ${(err as Error).message}`
     }
@@ -164,10 +195,10 @@ export async function probeImage(url: string, base: string, opts: ProbeOpts = {}
       // Validate the MIME against a strict pattern before embedding into HTML/CSS — a
       // misbehaving server could otherwise propagate junk into the data: URI which then
       // sits inside `style="background-image: url('...')"`.
-      const MIME_RE = /^[a-z]+\/[a-z0-9.+-]+$/i
-      const rawMime = (probe.contentType?.split(';')[0] ?? '').trim()
-      const mime = (MIME_RE.test(rawMime) ? rawMime : '') || guessMime(resolved) || 'application/octet-stream'
-      probe.dataUri = `data:${mime};base64,${buf.toString('base64')}`
+      const embeddable = new Set(['image/avif', 'image/gif', 'image/jpeg', 'image/png', 'image/webp'])
+      const rawMime = (probe.contentType?.split(';')[0] ?? '').trim().toLowerCase()
+      const mime = probe.detectedContentType ?? (embeddable.has(rawMime) ? rawMime : undefined) ?? guessMime(resolved)
+      if (mime && embeddable.has(mime)) probe.dataUri = `data:${mime};base64,${buf.toString('base64')}`
     }
     return probe
   } catch (err) {
