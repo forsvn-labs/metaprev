@@ -1,6 +1,6 @@
 {
   "name": "@forsvn/metaprev",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Preview, inspect, and repair Open Graph cards locally with actionable validation and copy-ready fixes.",
   "type": "module",
   "license": "MIT",

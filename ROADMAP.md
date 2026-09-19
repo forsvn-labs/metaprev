@@ -2,9 +2,8 @@
 
 ## Now
 
-1. Maintain the 0.5.0 repair workspace and its security, fallback, crop, and exit-code contracts.
+1. Maintain the 0.6.0 repair workspace and its security, fallback, crop, theme, and exit-code contracts.
 2. Keep `@forsvn/metaprev`, the bundled skill, and the public mirror aligned.
-3. Review Unreleased accuracy and themeable report-chrome work on real pages before a version bump.
 
 ## Next
 
