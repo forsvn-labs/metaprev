@@ -62,8 +62,8 @@ Exit codes: `0` clean, `1` at least one error-level issue, `2` fetch failure. Us
 Three issue levels:
 
 - **error** — share is visibly broken. No `og:image`, image returns 404, `og:image` is a relative URL like `/og.png` (most validators fetch the URL standalone and fail), or the URL returns a non-image response that can't be decoded (points at an HTML/error page).
-- **warn** — real compatibility or presentation risk. Examples: missing `og:title`, off-ratio or low-resolution image, image above LinkedIn's documented 5 MB limit, SVG image, or declared dimensions that differ from the decoded asset.
-- **info** — standards, accessibility, or resilience improvement. Examples: missing `og:image:alt`, `og:type`, dimensions, canonical URL, or `twitter:card`.
+- **warn** — real compatibility or presentation risk. Examples: missing required Open Graph fields (`og:title`, `og:description`, `og:url`, `og:type`), off-ratio or low-resolution image, image above LinkedIn's documented 5 MB limit, SVG image, or declared dimensions that differ from the decoded asset.
+- **info** — standards, accessibility, or resilience improvement. Examples: missing `og:image:alt`, dimensions, or `twitter:card`.
 
 Address errors first. Use each finding's impact and evidence to judge warnings. Info findings do not fail CI, but accessibility and standards notes can still be worth fixing.
 
@@ -79,7 +79,7 @@ Every issue includes a stable code, impact, observed evidence, and a concrete fi
 2. **Use a deliberate 1.91:1 asset.** The workspace target is 1200×630. LinkedIn documents 1200×627 for its sharing module. Use the crop inspection instead of assuming every platform will frame it identically.
 3. **Add accurate `og:image:width`, `og:image:height`, and `og:image:alt`.** The dimensions must match the decoded file. Alt describes what is in the image, not a slogan.
 4. **Choose the X treatment explicitly.** Use `summary_large_image` for a wide card or `summary` for the compact card.
-5. **Set `og:url` or a `<link rel="canonical">`** so platforms dedupe shares from URLs with `?utm_*` query strings.
+5. **Set `og:url`.** Open Graph and LinkedIn require it. A `<link rel="canonical">` may be offered as a candidate to verify; it is not a substitute.
 
 ## Copy rule
 

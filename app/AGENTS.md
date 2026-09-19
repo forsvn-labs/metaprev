@@ -46,8 +46,8 @@ test/
 Edit `src/validate.ts`. Each rule emits `Issue { level, code, field, message, impact, evidence, fix }`. Keep `level`, `field`, and `message` compatible for existing JSON consumers. Levels:
 
 - `error` — broken image, missing og:image, non-absolute og:image URL, non-image content-type
-- `warn` — missing required OG fallback, image off-ratio / low-resolution / too large, SVG image
-- `info` — missing resilience or accessibility helpers (dimensions, alt, twitter:card, type, canonical)
+- `warn` — missing required OG fields (`og:title`, `og:description`, `og:url`, `og:type`), image off-ratio / low-resolution / too large, SVG image
+- `info` — missing resilience or accessibility helpers (dimensions, alt, twitter:card)
 
 Do not emit generic title or description length warnings. Tight truthful copy is valid. Factual platform thresholds must come from current first-party documentation and name the platform in the finding evidence.
 

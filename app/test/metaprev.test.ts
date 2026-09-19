@@ -261,15 +261,29 @@ describe('validate', () => {
     expect(fields).toContain('og:image')
   })
 
-  test('does not treat X-only copy as an Open Graph fallback', () => {
-    const issues = find({ twitterTitle: 'Only on X', twitterDescription: 'X-only context' })
-    expect(issues.some((i) => i.code === 'missing-title' && i.level === 'error')).toBe(true)
-    expect(issues.some((i) => i.code === 'missing-description' && i.level === 'error')).toBe(true)
+  test('keeps X-only fields as OG errors while naming Slack X-tag support', () => {
+    const issues = find({
+      twitterTitle: 'Only on X',
+      twitterDescription: 'X-only context',
+      twitterImage: 'https://x/x.png',
+    })
+    for (const code of ['missing-title', 'missing-description', 'missing-og-image']) {
+      const issue = issues.find((candidate) => candidate.code === code)
+      expect(issue).toMatchObject({ level: 'error' })
+      expect(issue?.evidence).toContain('X and Slack classic unfurls may consume it')
+      expect(issue?.evidence).toContain('Facebook and LinkedIn')
+    }
   })
 
-  test('relative og:image is an error', () => {
-    const issues = find({ ...full, ogImage: '/og.png' })
-    expect(issues.some((i) => i.level === 'error' && i.code === 'relative-og-image')).toBe(true)
+  test('accepts absolute HTTP and HTTPS og:image URLs and rejects other forms', () => {
+    for (const ogImage of ['http://x/og.png', 'https://x/og.png']) {
+      const issues = find({ ...full, ogImage }, okImage({ url: ogImage, resolved: ogImage }))
+      expect(issues.some((i) => i.code === 'relative-og-image')).toBe(false)
+    }
+    for (const ogImage of ['/og.png', 'ftp://x/og.png', 'data:image/png;base64,AAAA']) {
+      const issues = find({ ...full, ogImage })
+      expect(issues.find((i) => i.code === 'relative-og-image')).toMatchObject({ level: 'error', field: 'og:image' })
+    }
   })
 
   test('rejects malformed image and canonical URLs', () => {
@@ -278,26 +292,51 @@ describe('validate', () => {
     expect(issues.some((i) => i.code === 'invalid-canonical-url' && i.field === 'og:url')).toBe(true)
   })
 
-  test('off-ratio image warns; a near-ratio image does not get a crop warning', () => {
-    const square = find(full, okImage({ width: 800, height: 800 }))
-    expect(square.some((i) => i.code === 'image-ratio')).toBe(true)
-    const near = find({ ...full, ogImageHeight: '628' }, okImage({ width: 1200, height: 628 }))
-    expect(near.some((i) => i.code === 'image-ratio')).toBe(false)
+  test('uses a 2% LinkedIn ratio tolerance and labels unverified Facebook and X guidance', () => {
+    for (const [width, height] of [[1200, 627], [1200, 630]] as const) {
+      const issues = find({ ...full, ogImageWidth: String(width), ogImageHeight: String(height) }, okImage({ width, height }))
+      expect(issues.some((i) => i.code === 'image-ratio')).toBe(false)
+      expect(issues.some((i) => i.code === 'image-resolution')).toBe(false)
+    }
+
+    const offRatio = find({ ...full, ogImageWidth: '1200', ogImageHeight: '600' }, okImage({ width: 1200, height: 600 }))
+    const ratio = offRatio.find((i) => i.code === 'image-ratio')
+    expect(ratio).toMatchObject({ level: 'warn', field: 'og:image' })
+    expect(`${ratio?.message} ${ratio?.evidence} ${ratio?.fix}`).toContain('Facebook')
+    expect(`${ratio?.message} ${ratio?.evidence} ${ratio?.fix}`).toContain('LinkedIn')
+    expect(ratio?.evidence).toContain('2% tolerance')
+    expect(ratio?.evidence).toContain('linkedin.com/help/linkedin/answer/a521928')
+    expect(ratio?.evidence).toContain('returned HTTP 429 during this review')
+    expect(ratio?.evidence).toContain('does not claim a currently verified Facebook ratio or a current X image ratio')
   })
 
-  test('small image warns', () => {
-    const issues = find(full, okImage({ width: 400, height: 209 }))
-    expect(issues.some((i) => i.code === 'image-resolution')).toBe(true)
+  test('scopes the resolution warning to cited LinkedIn guidance and qualifies Facebook uncertainty', () => {
+    const issues = find({ ...full, ogImageWidth: '600', ogImageHeight: '315' }, okImage({ width: 600, height: 315 }))
+    const warnings = issues.filter((i) => i.level === 'warn')
+    expect(warnings.map((i) => i.code)).toEqual(['image-resolution'])
+    expect(warnings[0]?.message).toContain('LinkedIn')
+    expect(warnings[0]?.message).not.toContain('cross-platform')
+    expect(warnings[0]?.evidence).toContain('1200×627')
+    expect(warnings[0]?.evidence).toContain('linkedin.com/help/linkedin/answer/a521928')
+    expect(warnings[0]?.evidence).toContain('prior Facebook size guidance is not asserted as current')
   })
 
   test('declared dimensions mismatch warns', () => {
     const issues = find({ ...full, ogImageWidth: '800', ogImageHeight: '418' }, okImage())
-    expect(issues.some((i) => i.code === 'image-dimension-mismatch')).toBe(true)
+    const mismatch = issues.find((i) => i.code === 'image-dimension-mismatch')
+    expect(mismatch).toMatchObject({ level: 'warn', field: 'og:image' })
+    expect(mismatch?.evidence).toContain('Facebook')
+    expect(mismatch?.evidence).toContain('og:image:width')
+    expect(mismatch?.evidence).toContain('og:image:height')
   })
 
-  test('SVG og:image warns', () => {
+  test('SVG og:image warning cites Facebook image types', () => {
     const issues = find(full, okImage({ contentType: 'image/svg+xml', width: undefined, height: undefined }))
-    expect(issues.some((i) => i.level === 'warn' && /SVG/.test(i.message))).toBe(true)
+    const svg = issues.find((i) => i.code === 'svg-image')
+    expect(svg).toMatchObject({ level: 'warn', field: 'og:image' })
+    expect(svg?.evidence).toContain('Facebook')
+    expect(svg?.evidence).toContain('JPEG, GIF, and PNG')
+    expect(svg?.evidence).toContain('current format list remains unconfirmed')
   })
 
   test('uses decoded bytes for format validation and reports conflicting image headers', () => {
@@ -319,12 +358,65 @@ describe('validate', () => {
 
   test('oversized image warns', () => {
     const issues = find(full, okImage({ byteLength: 6 * 1024 * 1024 }))
-    expect(issues.some((i) => i.code === 'image-file-size')).toBe(true)
+    const size = issues.find((i) => i.code === 'image-file-size')
+    expect(size).toMatchObject({ level: 'warn', field: 'og:image' })
+    expect(`${size?.message} ${size?.impact} ${size?.evidence}`).toContain('LinkedIn')
+    expect(`${size?.message} ${size?.impact} ${size?.evidence}`).not.toContain('X')
+  })
+
+  test('labels Facebook first-share guidance as unconfirmed when dimensions are missing', () => {
+    const issues = find({ ...full, ogImageWidth: undefined }, okImage())
+    const dimensions = issues.find((i) => i.code === 'missing-image-dimensions')
+    expect(dimensions).toMatchObject({ level: 'info', field: 'og:image' })
+    expect(dimensions?.evidence).toContain('Facebook')
+    expect(dimensions?.evidence).toContain('first-share')
+    expect(dimensions?.evidence).toContain('remains unconfirmed')
+  })
+
+  test('reports og:url as missing even when a canonical link exists', () => {
+    const issues = find({ ...full, ogUrl: undefined, canonical: 'https://x/canonical', ogType: undefined }, okImage())
+    const url = issues.find((i) => i.code === 'missing-canonical-url')
+    expect(url).toMatchObject({ level: 'warn', field: 'og:url', message: 'The required og:url tag is missing.' })
+    expect(url?.evidence).toContain('canonical link exists')
+    expect(url?.evidence).toContain('ogp.me')
+    expect(url?.evidence).toContain('linkedin.com/help/linkedin/answer/a521928')
+    expect(url?.fix).toContain('Add og:url')
+    expect(url?.fix).not.toContain('or a canonical link')
+    expect(issues.find((i) => i.code === 'missing-og-type')).toMatchObject({ level: 'warn', field: 'og:type' })
+  })
+
+  test('reports missing twitter:image:alt as withdrawn X guidance', () => {
+    const issues = find({ ...full, twitterImage: 'https://x/x.png' }, okImage())
+    const alt = issues.find((i) => i.code === 'missing-twitter-image-alt')
+    expect(alt).toMatchObject({ level: 'info', field: 'twitter:image:alt', message: 'The X image has no alternative text.' })
+    expect(alt?.evidence).toContain('Withdrawn first-party Twitter markup from 2020')
+    expect(alt?.evidence).toContain('Current docs.x.com no longer confirms this rule')
+
+    const complete = find({ ...full, twitterImage: 'https://x/x.png', twitterImageAlt: 'An X crop' }, okImage())
+    expect(complete.some((i) => i.code === 'missing-twitter-image-alt')).toBe(false)
+  })
+
+  test('describes missing, unrendered, and unrecognized X card values without treating them as invalid', () => {
+    const missing = find({ ...full, twitterCard: undefined }, okImage()).find((i) => i.code === 'missing-twitter-card')
+    expect(missing).toMatchObject({ level: 'info', field: 'twitter:card' })
+    expect(missing?.impact).toContain('may choose a default')
+    expect(missing?.evidence).toContain('summary card may render from Open Graph tags')
+    expect(missing?.evidence).toContain('current docs.x.com no longer confirms')
+
+    for (const card of ['player', 'app']) {
+      const issue = find({ ...full, twitterCard: card }, okImage()).find((i) => i.code === 'unusual-twitter-card')
+      expect(issue).toMatchObject({ level: 'info', field: 'twitter:card', message: `The ${card} card is not rendered by MetaPrev.` })
+      expect(`${issue?.message} ${issue?.impact}`).not.toMatch(/invalid|uncommon/i)
+    }
+
+    const unknown = find({ ...full, twitterCard: 'future_card' }, okImage()).find((i) => i.code === 'unusual-twitter-card')
+    expect(unknown).toMatchObject({ level: 'info', field: 'twitter:card', message: 'The twitter:card value is unrecognized.' })
   })
 
   test('does not emit generic title or description length advice', () => {
     const issues = find({ ...full, ogTitle: 'Nook', ogDescription: 'Room to think.' }, okImage())
-    expect(issues.some((i) => /character|chars|short|long/i.test(`${i.code} ${i.message}`))).toBe(false)
+    const output = issues.map((i) => `${i.message} ${i.impact} ${i.evidence} ${i.fix}`).join('\n')
+    expect(output).not.toMatch(/(?:title|description).{0,60}\b\d+\s*(?:characters?|chars?)\b/i)
   })
 
   test('reports an Open Graph description fallback without inventing copy advice', () => {
@@ -333,12 +425,12 @@ describe('validate', () => {
   })
 
   test('every finding carries stable repair context and is severity-prioritized', () => {
-    const issues = find({ title: 'Fallback' }, undefined)
+    const issues = find({ title: 'Fallback', twitterImage: 'https://x/x.png' }, undefined)
     for (const issue of issues) {
-      expect(issue.code.length).toBeGreaterThan(0)
-      expect(issue.impact.length).toBeGreaterThan(0)
-      expect(issue.evidence.length).toBeGreaterThan(0)
-      expect(issue.fix.length).toBeGreaterThan(0)
+      expect(Object.keys(issue).sort()).toEqual(['code', 'evidence', 'field', 'fix', 'impact', 'level', 'message'])
+      for (const key of ['level', 'field', 'message', 'code', 'impact', 'evidence', 'fix'] as const) {
+        expect(issue[key].length).toBeGreaterThan(0)
+      }
     }
     const levels = issues.map((i) => i.level)
     expect(levels).toEqual([...levels].sort((a, b) => ({ error: 0, warn: 1, info: 2 }[a] - { error: 0, warn: 1, info: 2 }[b])))
@@ -419,6 +511,9 @@ describe('renderHtml', () => {
     expect(html).toContain('mock__summary--with-image')
     expect(html).toContain('data:image/png;base64,AAAA')
     expect(html).toContain('data:image/png;base64,BBBB')
+    expect(html).toContain('previewed separately; not covered by OG findings')
+    expect(html).toContain('these Open Graph findings do not validate that asset for X')
+    expect(html).toContain('current image rules are undocumented')
   })
 
   test('shows crop evidence, repair controls, CSP, and an accessible copy status', () => {
@@ -434,11 +529,86 @@ describe('renderHtml', () => {
     expect(html).toContain('Copy agent prompt')
     expect(html).toContain('<h3 class="card__name">Discord</h3>')
     expect(html).not.toContain('<h3 class="card__name">Discord / Slack</h3>')
+    expect(html).toContain('Slack classic unfurls inspect common Open Graph and X metadata')
+    expect(html).toContain('Slack is not represented by the Discord mock')
+    expect(html).toContain('Current docs.x.com does not publish Cards image rules')
+    expect(html).toContain('LinkedIn workspace frame 1.91:1; Facebook guidance not reverified')
+    expect(html).toContain('first-party pages returned HTTP 429')
+    expect(html).not.toMatch(/X (?:target|rule|requirement)[^<]{0,40}1\.91:1/i)
     expect(html).toContain('Content-Security-Policy')
     expect(html).toContain("script-src 'nonce-")
     expect(html).not.toContain("script-src 'unsafe-inline'")
     expect(html).toMatch(/<script nonce="[a-f0-9]{32}">/)
     expect(html).toContain('aria-live="polite"')
+  })
+
+  test('renders separate persistent chrome themes and card appearance controls under the nonce CSP', () => {
+    const html = renderHtml(report({ meta: { ogTitle: 'Theme controls' } }))
+    expect(html).toContain('<html lang="en" data-theme="workbench" data-chrome="light">')
+    expect(html).toContain('<meta name="color-scheme" content="light dark" />')
+    for (const [value, label] of [
+      ['workbench', 'Workbench'],
+      ['vintage-paper', 'Vintage Paper'],
+      ['modern-minimal', 'Modern Minimal'],
+      ['mocha-mousse', 'Mocha Mousse'],
+      ['clean-slate', 'Clean Slate'],
+      ['solar-dusk', 'Solar Dusk'],
+    ]) {
+      expect(html).toContain(`<option value="${value}">${label}</option>`)
+      expect(html).toContain(`html[data-theme="${value}"][data-chrome="dark"]`)
+    }
+    expect(html).toContain('aria-label="Report color scheme"')
+    expect(html).toContain('data-chrome-set="light"')
+    expect(html).toContain('data-chrome-set="dark"')
+    expect(html).toContain('aria-label="Card appearance"')
+    expect(html).toContain('data-appearance-set="light"')
+    expect(html).toContain('data-appearance-set="dark"')
+    expect(html).toContain("localStorage.getItem('metaprev-chrome-theme')")
+    expect(html).toContain("localStorage.setItem(key, value)")
+    expect(html).toContain("window.matchMedia('(prefers-color-scheme: dark)')")
+    expect(html).toContain('prefers-reduced-motion: reduce')
+    expect(html).toContain('href="#content">Skip to report</a>')
+    expect(html).toContain('<main id="content">')
+    expect(html).toContain('<h2 class="panel__title">')
+    expect(html).not.toContain('class="panel__title">\n              Validation</span>')
+    expect(html).not.toContain('class="stage rise"')
+    expect(html).toContain('.resolved__row { grid-template-columns: 72px minmax(0, 1fr); gap: 2px 8px; align-items: start; }')
+    expect(html).toContain('.resolved__source { grid-column: 2; grid-row: 2; }')
+
+    const nonce = html.match(/script-src 'nonce-([a-f0-9]{32})'/)?.[1]
+    expect(nonce).toBeTruthy()
+    const scripts = html.match(/<script\b[^>]*>/g) ?? []
+    expect(scripts.length).toBeGreaterThanOrEqual(3)
+    for (const script of scripts) expect(script).toContain(`nonce="${nonce}"`)
+    expect(html).not.toContain("script-src 'unsafe-inline'")
+  })
+
+  test('emits contrast-safe chrome tokens and card-scoped placeholder colors', () => {
+    const html = renderHtml(report({ meta: { ogTitle: 'Contrast audit' } }))
+    const style = html.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? ''
+    expect(style).toMatch(/html\[data-theme\]\[data-chrome\]\s*\{[^}]*--ink-2: color-mix\(in oklch, var\(--ink\) 94%, var\(--paper\)\)/)
+    expect(style).toMatch(/html\[data-theme\]\[data-chrome\]\s*\{[^}]*--ink-3: color-mix\(in oklch, var\(--ink\) 88%, var\(--paper\)\)/)
+    const lastInk2 = [...style.matchAll(/--ink-2:[^;]+;/g)].at(-1)?.[0]
+    expect(lastInk2).toContain('color-mix(in oklch, var(--ink) 94%, var(--paper))')
+    for (const theme of ['workbench', 'vintage-paper', 'modern-minimal', 'mocha-mousse', 'clean-slate', 'solar-dusk']) {
+      for (const scheme of ['light', 'dark']) {
+        if (theme === 'workbench' && scheme === 'light') continue
+        const block = style.match(new RegExp(`html\\[data-theme="${theme}"\\]\\[data-chrome="${scheme}"\\] \\{([^}]+)\\}`))?.[1] ?? ''
+        expect(block.includes('--ink-2:')).toBe(false)
+      }
+    }
+    for (const token of ['error', 'warn', 'info', 'ok']) {
+      expect(html).toContain(`--${token}-ink: var(--ink)`)
+    }
+    expect(html).toContain('--action: var(--ink)')
+    expect(html).toContain('--action-ink: var(--paper)')
+    expect(html).toContain('.chip--ok { color: var(--ok-ink);')
+    expect(html).toContain('.seg__btn {\n    font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;\n    color: var(--ink);')
+    expect(html).toContain('.mock__img--missing {')
+    expect(html).toContain('color: #4b5563; font-family: var(--mono)')
+    expect(html).toContain('.mock--fb .mock__img--missing { color: #d8dadf;')
+    expect(html).toContain('.mock--li .mock__img--missing { color: #d8dde3;')
+    expect(html).not.toContain('.mock__img--missing {\n    display: flex; align-items: center; justify-content: center;\n    background: repeating-linear-gradient(45deg, oklch(91% 0.01 75) 0 10px, oklch(93% 0.008 75) 10px 20px);\n    color: var(--ink-3)')
   })
 
   test('never turns a non-HTTP final URL into a clickable target', () => {
@@ -467,6 +637,15 @@ describe('repair output', () => {
     expect(prompt).toContain('untrusted data')
     expect(prompt).toContain('Do not pad copy')
     expect(prompt).toContain('Safe starting metadata patch')
+    expect(brief).toContain('Facebook and LinkedIn depend on the Open Graph path')
+    expect(brief).toContain('Slack classic unfurls inspect common Open Graph and X metadata')
+    expect(brief).toContain('the Discord mock does not represent Slack')
+    expect(brief).toContain('A distinct twitter:image is previewed separately')
+    expect(prompt).toContain('absolute public HTTP(S) URLs')
+    expect(prompt).toContain('prefer HTTPS')
+    expect(prompt).toContain('Do not state that HTTPS is required for og:image')
+    expect(prompt).toContain('Do not present it as a current X rule')
+    expect(prompt).toContain('Open Graph image findings do not validate that asset for X')
   })
 
   test('escapes copied metadata snippets and never emits executable page markup', () => {
@@ -487,9 +666,36 @@ describe('repair output', () => {
     })
     const snippet = buildMetaSnippet(target)
     expect(snippet).not.toContain('localhost:3000')
-    expect(snippet).toContain('Add the preferred absolute public URL')
-    expect(snippet).toContain('Add the absolute public URL of the intended share image')
+    expect(snippet).toContain('Add the preferred absolute public HTTP(S) URL')
+    expect(snippet).toContain('Add an absolute public HTTP(S) og:image URL; prefer HTTPS')
     expect(snippet).toContain('twitter:card" content="summary"')
+  })
+
+  test('marks a canonical-link-derived og:url as a candidate to verify', () => {
+    const snippet = buildMetaSnippet(report({
+      finalUrl: 'https://example.com/current',
+      meta: { canonical: 'https://example.com/preferred' },
+    }))
+    expect(snippet).toContain('Candidate inferred from <link rel="canonical">')
+    expect(snippet).toContain('verify it is the preferred Open Graph object URL')
+    expect(snippet).toContain('property="og:url" content="https://example.com/preferred"')
+  })
+
+  test('marks a distinct X image as separately previewed and documents alt uncertainty', () => {
+    const snippet = buildMetaSnippet(report({
+      finalUrl: 'https://x.test/',
+      meta: {
+        ogTitle: 'Open Graph title',
+        ogDescription: 'Open Graph description',
+        ogImage: 'https://cdn.x.test/og.png',
+        twitterImage: 'https://cdn.x.test/x.png',
+      },
+    }))
+    expect(snippet).toContain('MetaPrev previews this X-specific image separately')
+    expect(snippet).toContain('Open Graph image findings do not validate it for X')
+    expect(snippet).toContain('Current X image rules are undocumented')
+    expect(snippet).toContain('Consider twitter:image:alt')
+    expect(snippet).toContain('current docs.x.com does not confirm the rule')
   })
 
   test('documents resolved OG and X fallbacks independently', () => {
@@ -537,7 +743,7 @@ describe('repair output', () => {
       meta: { ogTitle: 'Local page', ogImage: '/card.png', twitterCard: 'player' },
     }))
     expect(snippet).not.toContain('http://127.0.0.1')
-    expect(snippet).toContain('Add the preferred absolute public URL')
+    expect(snippet).toContain('Add the preferred absolute public HTTP(S) URL')
     expect(snippet).toContain('name="twitter:card" content="player"')
   })
 })

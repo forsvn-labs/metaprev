@@ -4,6 +4,10 @@ import type { ImageProbe, Issue, MetaTags } from './types.ts'
 const TARGET = { width: 1200, height: 630, ratio: 1200 / 630 } as const
 const RATIO_TOLERANCE = 0.02
 const LINKEDIN_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+const OPEN_GRAPH_DOCS = 'https://ogp.me/'
+const LINKEDIN_SHARING_DOCS = 'https://www.linkedin.com/help/linkedin/answer/a521928'
+const FACEBOOK_WEBMASTER_DOCS = 'https://developers.facebook.com/docs/sharing/webmasters/'
+const FACEBOOK_IMAGE_DOCS = 'https://developers.facebook.com/docs/sharing/webmasters/images/'
 
 type Finding = Pick<Issue, 'level' | 'code' | 'field' | 'message' | 'impact' | 'evidence' | 'fix'>
 
@@ -28,16 +32,16 @@ function isAbsoluteHttpUrl(value: string): boolean {
 
 export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[] {
   const issues: Issue[] = []
-  // Open Graph consumers do not generally use twitter:* as a fallback. Validate the
-  // shared OG/page path independently; the X card resolves its own overrides in render.
+  // Facebook and LinkedIn use the Open Graph path. Slack may consume either Open
+  // Graph or X metadata, while the X card resolves its own overrides in render.
   const title = meta.ogTitle ?? meta.title
   const description = meta.ogDescription ?? meta.description
 
   if (!title) issues.push(finding({
     level: 'error', code: 'missing-title', field: 'title', message: 'No share title was found.',
-    impact: 'The card can render without a useful headline or use an unpredictable platform fallback.',
+    impact: 'Facebook and LinkedIn lack the intended Open Graph headline.',
     evidence: meta.twitterTitle
-      ? 'twitter:title exists for X, but neither og:title nor <title> is present for Open Graph consumers.'
+      ? 'twitter:title exists, so X and Slack classic unfurls may consume it. Facebook and LinkedIn still lack og:title and a page <title> fallback.'
       : 'Neither og:title nor <title> is present in the fetched HTML.',
     fix: 'Add a truthful og:title. Also set twitter:title only when X needs different copy.',
   }))
@@ -50,10 +54,10 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
 
   if (!description) issues.push(finding({
     level: 'error', code: 'missing-description', field: 'description', message: 'No share description was found.',
-    impact: 'Cards that show supporting copy will have no context below the title.',
+    impact: 'LinkedIn lacks the description its current sharing guidance says must exist.',
     evidence: meta.twitterDescription
-      ? 'twitter:description exists for X, but neither og:description nor meta description is present for Open Graph consumers.'
-      : 'Neither og:description nor meta description is present in the fetched HTML.',
+      ? 'twitter:description exists, so X and Slack classic unfurls may consume it. Facebook and LinkedIn still lack og:description; the Open Graph protocol itself lists og:description as optional.'
+      : 'Neither og:description nor meta description is present. LinkedIn says og:description must exist for a share preview, while the Open Graph protocol lists it as optional.',
     fix: 'Add a concise, factual og:description. Do not pad it to meet an arbitrary character target.',
   }))
   else if (!meta.ogDescription) issues.push(finding({
@@ -65,9 +69,11 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
 
   if (!meta.ogImage) issues.push(finding({
     level: 'error', code: 'missing-og-image', field: 'og:image', message: 'No og:image meta tag was found.',
-    impact: 'Facebook, LinkedIn, and chat unfurls can render without a large visual or choose an unrelated fallback.',
-    evidence: 'The fetched HTML has no og:image value.',
-    fix: 'Add an absolute HTTPS og:image URL for the intended share asset.',
+    impact: 'Facebook and LinkedIn lack the intended Open Graph image.',
+    evidence: meta.twitterImage
+      ? 'twitter:image exists, so X and Slack classic unfurls may consume it. Facebook and LinkedIn still lack og:image.'
+      : 'The fetched HTML has no og:image value for Facebook or LinkedIn.',
+    fix: 'Add an absolute HTTP(S) og:image URL for the intended share asset. Prefer HTTPS.',
   }))
   else if (!isAbsoluteHttpUrl(meta.ogImage)) issues.push(finding({
     level: 'error', code: 'relative-og-image', field: 'og:image', message: 'og:image is not an absolute HTTP(S) URL.',
@@ -90,10 +96,10 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     const decoded = Boolean(image.width && image.height)
     if (effectiveType === 'image/svg+xml') issues.push(finding({
       level: 'warn', code: 'svg-image', field: 'og:image', message: 'The share image is SVG.',
-      impact: 'LinkedIn does not list SVG among the formats supported by its sharing module, so rendering is not dependable.',
-      evidence: detectedType === 'image/svg+xml'
+      impact: 'Facebook does not list SVG as a supported Open Graph image type.',
+      evidence: `${detectedType === 'image/svg+xml'
         ? 'The downloaded bytes decode as SVG.'
-        : 'The image response content type is image/svg+xml.',
+        : 'The image response content type is image/svg+xml.'} Facebook's first-party webmaster page previously listed JPEG, GIF, and PNG, but ${FACEBOOK_WEBMASTER_DOCS} returned HTTP 429 during this review, so the current format list remains unconfirmed.`,
       fix: 'Export the asset as PNG or JPEG and update og:image to that file.',
     }))
     else if (!decoded) issues.push(finding({
@@ -113,23 +119,23 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     if (image.width && image.height) {
       const ratio = image.width / image.height
       if (Math.abs(ratio - TARGET.ratio) / TARGET.ratio > RATIO_TOLERANCE) issues.push(finding({
-        level: 'warn', code: 'image-ratio', field: 'og:image', message: 'The image does not match the 1.91:1 share frame.',
-        impact: 'Depending on the platform and viewport, the asset can be cropped or padded.',
-        evidence: `The decoded asset is ${image.width}×${image.height}px (${ratio.toFixed(2)}:1); the workspace frame is 1.91:1.`,
-        fix: `Export a ${TARGET.width}×${TARGET.height}px version and keep important content away from the edges.`,
+        level: 'warn', code: 'image-ratio', field: 'og:image', message: 'The Open Graph image differs from the 1.91:1 Facebook and LinkedIn frame.',
+        impact: 'Facebook or LinkedIn can crop or pad the asset in a link share.',
+        evidence: `The decoded asset is ${image.width}×${image.height}px (${ratio.toFixed(2)}:1). LinkedIn recommends 1.91:1 at ${LINKEDIN_SHARING_DOCS}; MetaPrev allows a 2% tolerance. Facebook's first-party image page at ${FACEBOOK_IMAGE_DOCS} returned HTTP 429 during this review, so MetaPrev does not claim a currently verified Facebook ratio or a current X image ratio.`,
+        fix: `Use ${TARGET.width}×${TARGET.height}px for the LinkedIn workspace frame, with important content away from the edges.`,
       }))
       if (image.width < 1200 || image.height < 627) issues.push(finding({
-        level: 'warn', code: 'image-resolution', field: 'og:image', message: 'The image is below the cross-platform high-resolution target.',
-        impact: 'The card can look soft when enlarged, and the asset falls below LinkedIn’s published sharing-module dimensions.',
-        evidence: `The decoded asset is ${image.width}×${image.height}px; LinkedIn lists 1200×627px for its sharing module.`,
-        fix: `Export at least ${TARGET.width}×${TARGET.height}px without upscaling a low-resolution source.`,
+        level: 'warn', code: 'image-resolution', field: 'og:image', message: 'The image is below LinkedIn’s sharing-module minimum.',
+        impact: 'The asset falls below LinkedIn’s published 1200×627 sharing-module dimensions.',
+        evidence: `The decoded asset is ${image.width}×${image.height}px. LinkedIn lists 1200×627px as its sharing-module minimum at ${LINKEDIN_SHARING_DOCS}. Facebook's first-party image page at ${FACEBOOK_IMAGE_DOCS} returned HTTP 429 during this review, so prior Facebook size guidance is not asserted as current.`,
+        fix: `Use ${TARGET.width}×${TARGET.height}px for the LinkedIn workspace without upscaling a low-resolution source.`,
       }))
     }
 
     if (image.byteLength != null && image.byteLength > LINKEDIN_IMAGE_MAX_BYTES) issues.push(finding({
       level: 'warn', code: 'image-file-size', field: 'og:image', message: 'The share image exceeds LinkedIn’s documented file-size limit.',
       impact: 'LinkedIn may omit the image even when another platform accepts it.',
-      evidence: `The response is ${(image.byteLength / 1024 / 1024).toFixed(2)} MB; LinkedIn’s sharing module lists a 5 MB maximum.`,
+      evidence: `The response is ${(image.byteLength / 1024 / 1024).toFixed(2)} MB; LinkedIn’s sharing module lists a 5 MB maximum at ${LINKEDIN_SHARING_DOCS}.`,
       fix: 'Compress or simplify the image to 5 MB or less while preserving its dimensions.',
     }))
   }
@@ -144,7 +150,7 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
   if (meta.ogImage && (!meta.ogImageWidth || !meta.ogImageHeight)) issues.push(finding({
     level: 'info', code: 'missing-image-dimensions', field: 'og:image', message: 'Declared image dimensions are missing.',
     impact: 'A crawler cannot know the image shape from metadata before downloading it.',
-    evidence: 'og:image exists, but og:image:width or og:image:height is absent.',
+    evidence: `og:image exists, but og:image:width or og:image:height is absent. Facebook's first-party webmaster page at ${FACEBOOK_WEBMASTER_DOCS} returned HTTP 429 during this review, so its prior first-share recommendation for both dimensions remains unconfirmed.`,
     fix: 'Add og:image:width and og:image:height using the decoded asset dimensions.',
   }))
 
@@ -162,40 +168,54 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     else if (declaredWidth !== image.width || declaredHeight !== image.height) issues.push(finding({
       level: 'warn', code: 'image-dimension-mismatch', field: 'og:image', message: 'Declared image dimensions do not match the fetched asset.',
       impact: 'A crawler can reserve the wrong frame before the image loads, causing a layout or crop mismatch.',
-      evidence: `Metadata declares ${declaredWidth}×${declaredHeight}px; the decoded asset is ${image.width}×${image.height}px.`,
+      evidence: `Metadata declares og:image:width and og:image:height as ${declaredWidth}×${declaredHeight}px; the decoded asset is ${image.width}×${image.height}px. Facebook's first-party webmaster page at ${FACEBOOK_WEBMASTER_DOCS} returned HTTP 429 during this review, so its prior first-share dimension recommendation remains unconfirmed.`,
       fix: `Update the tags to ${image.width}×${image.height}, or replace the asset with the declared size.`,
     }))
   }
 
-  if (!meta.twitterCard) issues.push(finding({
-    level: 'info', code: 'missing-twitter-card', field: 'twitter:card', message: 'No twitter:card meta tag was found.',
-    impact: 'X must infer a card treatment instead of following an explicit choice.',
-    evidence: 'The fetched HTML has no twitter:card value.',
-    fix: `Add twitter:card="${CARD_SUMMARY_LARGE_IMAGE}" for a wide image card, or "${CARD_SUMMARY}" for a compact card.`,
-  }))
-  else if (!isKnownTwitterCard(meta.twitterCard) || !RENDERED_TWITTER_CARDS.has(meta.twitterCard)) issues.push(finding({
-    level: 'info', code: 'unusual-twitter-card', field: 'twitter:card', message: 'twitter:card uses an uncommon value.',
-    impact: 'The X preview may not match either card treatment shown in this workspace.',
-    evidence: 'The value is neither summary_large_image nor summary.',
-    fix: 'Use summary_large_image or summary unless the page intentionally targets another supported card type.',
+  if (meta.twitterImage && !meta.twitterImageAlt) issues.push(finding({
+    level: 'info', code: 'missing-twitter-image-alt', field: 'twitter:image:alt', message: 'The X image has no alternative text.',
+    impact: 'A client that exposes X image alternative text may not have a useful description.',
+    evidence: 'Withdrawn first-party Twitter markup from 2020 defined twitter:image:alt without an Open Graph fallback. Current docs.x.com no longer confirms this rule.',
+    fix: 'Add twitter:image:alt that describes the X-specific image, while treating the current X requirement as undocumented.',
   }))
 
-  const canonical = meta.ogUrl ?? meta.canonical
-  if (!canonical) issues.push(finding({
-    level: 'info', code: 'missing-canonical-url', field: 'og:url', message: 'No canonical share URL was found.',
-    impact: 'Shares of tracking or alternate URLs can be treated as separate pages.',
-    evidence: 'Neither og:url nor a canonical link is present in the fetched HTML.',
-    fix: 'Add og:url or a canonical link that points to the preferred public page URL.',
+  if (!meta.twitterCard) issues.push(finding({
+    level: 'info', code: 'missing-twitter-card', field: 'twitter:card', message: 'No twitter:card meta tag was found.',
+    impact: 'X may choose a default card treatment instead of following an explicit choice.',
+    evidence: 'The fetched HTML has no twitter:card value. The last published first-party Twitter markup said a summary card may render from Open Graph tags; current docs.x.com no longer confirms that behavior.',
+    fix: `Add twitter:card="${CARD_SUMMARY_LARGE_IMAGE}" for a wide image card, or "${CARD_SUMMARY}" for a compact card.`,
   }))
-  else if (!isAbsoluteHttpUrl(canonical)) issues.push(finding({
-    level: 'warn', code: 'invalid-canonical-url', field: meta.ogUrl ? 'og:url' : 'canonical', message: 'The canonical share URL is not an absolute HTTP(S) URL.',
+  else if (!isKnownTwitterCard(meta.twitterCard)) issues.push(finding({
+    level: 'info', code: 'unusual-twitter-card', field: 'twitter:card', message: 'The twitter:card value is unrecognized.',
+    impact: 'MetaPrev cannot map the value to a known X card treatment.',
+    evidence: `The value "${meta.twitterCard}" is not among summary, summary_large_image, player, or app in the withdrawn 2020 first-party Twitter markup. Current docs.x.com no longer publishes the Cards vocabulary.`,
+    fix: 'Review the value. Use summary or summary_large_image when one of MetaPrev’s rendered treatments is intended.',
+  }))
+  else if (!RENDERED_TWITTER_CARDS.has(meta.twitterCard)) issues.push(finding({
+    level: 'info', code: 'unusual-twitter-card', field: 'twitter:card', message: `The ${meta.twitterCard} card is not rendered by MetaPrev.`,
+    impact: `MetaPrev preserves the ${meta.twitterCard} value but does not render that card type in this workspace.`,
+    evidence: `Withdrawn first-party Twitter markup from 2020 listed ${meta.twitterCard} as a card type. Current docs.x.com no longer confirms the Cards vocabulary.`,
+    fix: `Keep twitter:card="${meta.twitterCard}" if it is intentional and inspect that card with an X-specific tool.`,
+  }))
+
+  if (!meta.ogUrl) issues.push(finding({
+    level: 'warn', code: 'missing-canonical-url', field: 'og:url', message: 'The required og:url tag is missing.',
+    impact: 'Shares of tracking or alternate URLs can be treated as separate pages.',
+    evidence: meta.canonical
+      ? `A canonical link exists, but Open Graph (${OPEN_GRAPH_DOCS}) and LinkedIn (${LINKEDIN_SHARING_DOCS}) list og:url as required and do not document the canonical link as a substitute.`
+      : `No og:url is present. Open Graph (${OPEN_GRAPH_DOCS}) and LinkedIn (${LINKEDIN_SHARING_DOCS}) list og:url as required.`,
+    fix: 'Add og:url with the preferred absolute public page URL. Treat any canonical link only as a candidate value to verify.',
+  }))
+  else if (!isAbsoluteHttpUrl(meta.ogUrl)) issues.push(finding({
+    level: 'warn', code: 'invalid-canonical-url', field: 'og:url', message: 'The canonical share URL is not an absolute HTTP(S) URL.',
     impact: 'A crawler may fail to identify the permanent page URL or may treat alternate URLs as separate shares.',
-    evidence: `${meta.ogUrl ? 'og:url' : 'The canonical link'} is present but is not a valid absolute HTTP(S) URL.`,
-    fix: `Replace ${meta.ogUrl ? 'og:url' : 'the canonical link'} with the preferred absolute public page URL.`,
+    evidence: 'og:url is present but is not a valid absolute HTTP(S) URL.',
+    fix: 'Replace og:url with the preferred absolute public page URL.',
   }))
 
   if (!meta.ogType) issues.push(finding({
-    level: 'info', code: 'missing-og-type', field: 'og:type', message: 'The Open Graph object type is missing.',
+    level: 'warn', code: 'missing-og-type', field: 'og:type', message: 'The Open Graph object type is missing.',
     impact: 'Consumers must infer the page type instead of receiving an explicit Open Graph object type.',
     evidence: 'The fetched HTML has no og:type; the Open Graph protocol lists it as required metadata.',
     fix: 'Add og:type="website" for a general page, or the correct specific type such as "article".',

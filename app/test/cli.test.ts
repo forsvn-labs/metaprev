@@ -29,6 +29,20 @@ function cleanHtml(): string {
     <meta property="og:image:alt" content="A blue product card">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="${base}/x.png">
+    <meta name="twitter:image:alt" content="A blue X-specific product card">
+  </head><body></body></html>`
+}
+
+function warningOnlyHtml(): string {
+  return `<!doctype html><html><head>
+    <title>Fallback title</title>
+    <meta property="og:title" content="A concise product title">
+    <meta property="og:description" content="A factual description.">
+    <meta property="og:image" content="${base}/og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="A blue product card">
+    <meta name="twitter:card" content="summary_large_image">
   </head><body></body></html>`
 }
 
@@ -53,6 +67,7 @@ beforeAll(() => {
     fetch(req) {
       const path = new URL(req.url).pathname
       if (path === '/clean') return new Response(cleanHtml(), { headers: { 'content-type': 'text/html; charset=utf-8' } })
+      if (path === '/warnings-only') return new Response(warningOnlyHtml(), { headers: { 'content-type': 'text/html; charset=utf-8' } })
       if (path === '/broken') return new Response('<title>Only a title</title>', { headers: { 'content-type': 'text/html' } })
       if (path === '/large-broken') {
         const title = 'x'.repeat(200_000)
@@ -97,6 +112,26 @@ describe('CLI compatibility', () => {
     const failed = await runCli(`${base}/not-html`, '--json')
     expect(failed.exitCode).toBe(2)
     expect(failed.stderr).toContain('not HTML')
+  }, 15_000)
+
+  test('keeps warning-only reports at exit 0 for issues and full JSON', async () => {
+    const issuesResult = await runCli('issues', `${base}/warnings-only`, '--json')
+    // SAFETY: The assertions below verify the Issue compatibility fields read from CLI JSON.
+    const issues = JSON.parse(issuesResult.stdout) as Array<{ code: string; level: string; field: string; message: string }>
+    expect(issuesResult.exitCode).toBe(0)
+    expect(issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'missing-canonical-url', level: 'warn', field: 'og:url' }),
+      expect.objectContaining({ code: 'missing-og-type', level: 'warn', field: 'og:type' }),
+    ]))
+    expect(issues.every((issue) => Boolean(issue.level && issue.field && issue.message))).toBe(true)
+    expect(issues.some((issue) => issue.level === 'error')).toBe(false)
+
+    const fullResult = await runCli(`${base}/warnings-only`, '--json')
+    // SAFETY: The assertions below verify the report issue levels read from CLI JSON.
+    const full = JSON.parse(fullResult.stdout) as { issues: Array<{ level: string }> }
+    expect(fullResult.exitCode).toBe(0)
+    expect(full.issues.some((issue) => issue.level === 'warn')).toBe(true)
+    expect(full.issues.some((issue) => issue.level === 'error')).toBe(false)
   }, 15_000)
 
   test('keeps facts/JSON on one image probe and omits embedded bytes', async () => {
