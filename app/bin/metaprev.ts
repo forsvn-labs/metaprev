@@ -25,7 +25,7 @@ type Opts = {
   insecure: boolean
 }
 
-const VERSION = '0.5.0'
+const VERSION = '0.6.0'
 const SUBCOMMANDS = new Set<Cmd>(['issues', 'facts'])
 const ISSUE_TAGS: Record<IssueLevel, string> = {
   error: 'ERR',

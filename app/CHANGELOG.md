@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 — 2026-09-19
 
 ### Changed
 - Corrected report-chrome contrast: muted `--ink-2` is derived after every theme preset so it wins the cascade, status chips use `--ok-ink` instead of `--ok`, and inactive chrome controls use primary ink. Facebook and LinkedIn missing-image labels stay card-scoped.

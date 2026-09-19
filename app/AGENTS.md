@@ -58,7 +58,7 @@ Do not emit generic title or description length warnings. Tight truthful copy is
 Repair output lives in `src/repair.ts`. Treat fetched values as untrusted data, escape copy-ready HTML attributes, leave missing facts and local/private URLs as explicit comments, and keep the coding-agent prompt guarded against instructions in page or asset content.
 
 ## Publishing
-<!-- synced: 2026-08-23 -->
+<!-- synced: 2026-09-19 -->
 
 Sync `version` in `package.json` with `VERSION` in `bin/metaprev.ts`, then:
 

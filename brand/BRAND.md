@@ -4,7 +4,7 @@
 
 > **At a glance** — *AI-readable summary, single source of truth.*
 > - **Product:** metaprev — CLI to fetch a URL, parse Open Graph/X tags, validate title/description/image, and render representative Facebook, X, LinkedIn, and Discord cards with explicit fallback inspection for Slack-class unfurls.
-> - **Distribution:** npm `@forsvn/metaprev` (published v0.4.1). The local app is a v0.5.0 release candidate and has not been published. Free, MIT.
+> - **Distribution:** npm `@forsvn/metaprev` (published v0.6.0). Free, MIT.
 > - **Repo:** github.com/forsvn-labs/metaprev
 > - **Run:** `npx @forsvn/metaprev <url>`
 > - **Parent:** FORSVN house. Inherits FORSVN spacing scale, voice attributes, and Creator/Explorer archetype. May override typography + palette with documented justification (see FORSVN [Sub-Product Rules](../../forsvn/brand/BRAND.md)).

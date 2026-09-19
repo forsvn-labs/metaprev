@@ -18,7 +18,7 @@ npx @forsvn/metaprev http://localhost:3000   # your dev server, whatever the por
 ## What you get
 
 - **Platform-aware, without fake certainty.** The workspace separates Open Graph values from X-specific overrides and labels every fallback it used. The mocks are representative: platform experiments, viewport changes, and cached unfurls can still differ.
-- **Light and dark inspection.** A toggle lets you check the same inputs against representative light and dark card treatments.
+- **Light and dark inspection.** A toggle lets you check the same inputs against representative light and dark card treatments. Report chrome has its own themes and scheme, independent of the card mocks.
 - **Crop evidence, not guesswork.** Cover and fit views place the fetched asset in the same 1.91:1 frame, show decoded dimensions and byte size, and estimate which edges a centered cover crop hides.
 - **What you validated is what you saw.** The `og:image` is fetched and embedded as a data URI in the preview, so regenerating your asset never shows a stale, browser-cached image.
 - **Catches silent breaks.** A relative `og:image` such as `/og.png` is not a valid Open Graph URL and can fail when a crawler fetches the asset. metaprev flags that plus broken or missing images, harmful crops, oversized files, non-image or SVG responses, and declared dimensions that do not match the decoded file.
@@ -42,7 +42,7 @@ npx @forsvn/metaprev http://localhost:3000   # your dev server, whatever the por
 4. **Fix what's flagged and re-run.** The exit code stays `1` while any error remains and drops to `0` once the card is clean — so the same command works as a pre-ship check.
 
 ## What it checks
-<!-- synced: 2026-08-23 -->
+<!-- synced: 2026-09-19 -->
 
 | Check | Why |
 |---|---|
@@ -108,7 +108,7 @@ metaprev facts  https://forsvn.com --json # pipe parsed meta into another tool
 | `-h, --help` | Show help | — |
 
 ## Exit codes
-<!-- synced: 2026-08-23 -->
+<!-- synced: 2026-09-19 -->
 
 - `0` — no errors (warnings allowed)
 - `1` — at least one error-level issue (broken image, missing `og:image`, etc.)
@@ -148,7 +148,7 @@ npx skills add forsvn-labs/metaprev
 Works with Claude Code, Cursor, Codex, OpenCode, and other agents supported by the [skills CLI](https://github.com/vercel-labs/skills#supported-agents).
 
 ## Contributing & release
-<!-- synced: 2026-08-23 -->
+<!-- synced: 2026-09-19 -->
 
 ```bash
 bun install
