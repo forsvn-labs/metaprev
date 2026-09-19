@@ -4,7 +4,7 @@
 
 ### Changed
 - Corrected report-chrome contrast: muted `--ink-2` is derived after every theme preset so it wins the cascade, status chips use `--ok-ink` instead of `--ok`, and inactive chrome controls use primary ink. Facebook and LinkedIn missing-image labels stay card-scoped.
-- Reported missing `og:url` even when a canonical link exists. Repair output may use the canonical URL only as a clearly marked candidate that must be verified.
+- Reported missing `og:url` even when a canonical link exists. Repair output may use the canonical URL only as a clearly marked candidate that must be verified. The bundled skill no longer treats a canonical link as a substitute.
 - Added first-party source URLs to LinkedIn threshold evidence. Facebook format, size, ratio, and first-share guidance is now explicitly marked unconfirmed because its first-party pages returned HTTP 429 during this review.
 - Prevented resolved-input rows from colliding on narrow screens.
 - Added themes for the report chrome: the default Workbench, Vintage Paper, Modern Minimal, Mocha Mousse, Clean Slate, and Solar Dusk. Each theme has a light and dark scheme. The report saves chrome choices in localStorage and reads the system color preference when no scheme has been saved.
