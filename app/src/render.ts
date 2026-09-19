@@ -66,7 +66,7 @@ function cropEvidence(image: ImageProbe | undefined): string {
   if (!image?.width || !image.height) return 'Crop cannot be calculated without decoded dimensions.'
   const ratio = image.width / image.height
   const target = 1200 / 630
-  if (Math.abs(ratio - target) / target <= 0.02) return 'Fits the 1.91:1 frame with no material crop.'
+  if (Math.abs(ratio - target) / target <= 0.02) return 'Fits the 1.91:1 workspace frame with no material crop.'
   if (ratio < target) return `Cover mode hides about ${Math.round((1 - ratio / target) * 100)}% of the image height across the top and bottom.`
   return `Cover mode hides about ${Math.round((1 - target / ratio) * 100)}% of the image width across the left and right edges.`
 }
@@ -86,9 +86,9 @@ type CardParts = {
 type Level = 'error' | 'warn' | 'info'
 
 const ISSUE_ICONS: Record<Level, string> = {
-  error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
-  warn: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
-  info: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+  error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+  warn: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  info: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
 }
 
 // Brand glyphs used purely to label each platform mock (24×24, currentColor).
@@ -215,17 +215,35 @@ export function renderHtml(report: Report): string {
   const copyPayloads = buildCopyPayloads(report, facts)
 
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="workbench" data-chrome="light">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex" />
-<meta name="color-scheme" content="light" />
+<meta name="color-scheme" content="light dark" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'nonce-${scriptNonce}'; connect-src 'none'; base-uri 'none'; form-action 'none'" />
 <title>metaprev · ${escapeHtml(pageHost || title || 'preview')}</title>
+<script nonce="${scriptNonce}">
+  (function () {
+    var themes = ['workbench', 'vintage-paper', 'modern-minimal', 'mocha-mousse', 'clean-slate', 'solar-dusk'];
+    var theme = null;
+    var scheme = null;
+    try {
+      theme = localStorage.getItem('metaprev-chrome-theme');
+      scheme = localStorage.getItem('metaprev-chrome-scheme');
+    } catch (e) {}
+    if (themes.indexOf(theme) < 0) theme = 'workbench';
+    if (scheme !== 'light' && scheme !== 'dark') {
+      scheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-chrome', scheme);
+  })();
+</script>
 <style>
   *, *::before, *::after { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; }
+  html { -webkit-text-size-adjust: 100%; color-scheme: light; }
+  html[data-chrome="dark"] { color-scheme: dark; }
   html, body { margin: 0; padding: 0; }
   html, body { overflow-x: clip; }
 
@@ -235,6 +253,11 @@ export function renderHtml(report: Report): string {
     --surface: oklch(99.3% 0.004 80);
     --stage: oklch(94.4% 0.008 75);
     --stage-dark: oklch(26% 0.012 264);
+    --card-stage-light: oklch(94.4% 0.008 75);
+    --card-stage-light-ink: oklch(38% 0.012 65);
+    --card-stage-light-muted: oklch(43% 0.01 65);
+    --card-stage-dark-ink: oklch(86% 0.01 264);
+    --card-stage-dark-muted: oklch(75% 0.01 264);
     --ink: oklch(26% 0.012 65);
     --ink-2: oklch(46% 0.012 65);
     --ink-3: oklch(53% 0.01 65);
@@ -244,6 +267,7 @@ export function renderHtml(report: Report): string {
     --accent: oklch(57% 0.165 41);
     --accent-2: oklch(48% 0.155 39);
     --accent-wash: oklch(95.5% 0.03 50);
+    --accent-ink: var(--surface);
 
     --error: oklch(52% 0.19 27);
     --error-wash: oklch(96% 0.035 27);
@@ -267,6 +291,94 @@ export function renderHtml(report: Report): string {
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  html[data-theme="workbench"][data-chrome="dark"] {
+    --paper: oklch(22% 0.010 75); --surface: oklch(27% 0.008 80); --stage: oklch(18% 0.010 75);
+    --ink: oklch(94% 0.008 65); --line: oklch(34% 0.010 75);
+    --accent: oklch(57% 0.165 41); --accent-ink: oklch(98% 0.004 80); --accent-wash: color-mix(in oklch, var(--accent) 18%, var(--paper)); --error: oklch(62% 0.19 27);
+  }
+
+  html[data-theme="vintage-paper"][data-chrome="light"] {
+    --paper: oklch(0.9582 0.0152 90.2357); --surface: oklch(0.9914 0.0098 87.4695); --stage: oklch(0.9239 0.0190 83.0636);
+    --ink: oklch(0.3760 0.0225 64.3434); --line: oklch(0.8606 0.0321 84.5881);
+    --accent: oklch(0.6180 0.0778 65.5444); --accent-ink: oklch(1 0 0); --accent-wash: oklch(0.8348 0.0426 88.8064); --error: oklch(0.5471 0.1438 32.9149);
+  }
+  html[data-theme="vintage-paper"][data-chrome="dark"] {
+    --paper: oklch(0.2747 0.0139 57.6523); --surface: oklch(0.3237 0.0155 59.0603); --stage: oklch(0.2939 0.0125 62.1298);
+    --ink: oklch(0.9239 0.0190 83.0636); --line: oklch(0.3795 0.0181 57.1280);
+    --accent: oklch(0.7264 0.0581 66.6967); --accent-ink: oklch(0.2747 0.0139 57.6523); --accent-wash: oklch(0.4186 0.0281 56.3404); --error: oklch(0.5471 0.1438 32.9149);
+  }
+
+  html[data-theme="modern-minimal"][data-chrome="light"] {
+    --paper: oklch(1 0 0); --surface: oklch(1 0 0); --stage: oklch(0.9846 0.0017 247.8389);
+    --ink: oklch(0.3211 0 0); --line: oklch(0.9276 0.0058 264.5313);
+    --accent: oklch(0.6231 0.1880 259.8145); --accent-ink: oklch(1 0 0); --accent-wash: oklch(0.9514 0.0250 236.8242); --error: oklch(0.6368 0.2078 25.3313);
+  }
+  html[data-theme="modern-minimal"][data-chrome="dark"] {
+    --paper: oklch(0.2046 0 0); --surface: oklch(0.2686 0 0); --stage: oklch(0.2393 0 0);
+    --ink: oklch(0.9219 0 0); --line: oklch(0.3715 0 0);
+    --accent: oklch(0.6231 0.1880 259.8145); --accent-ink: oklch(1 0 0); --accent-wash: oklch(0.3791 0.1378 265.5222); --error: oklch(0.6368 0.2078 25.3313);
+  }
+
+  html[data-theme="mocha-mousse"][data-chrome="light"] {
+    --paper: oklch(0.9529 0.0146 102.4597); --surface: oklch(1 0 0); --stage: oklch(0.8502 0.0389 49.0874);
+    --ink: oklch(0.4063 0.0255 40.3627); --line: oklch(0.7473 0.0387 80.5476);
+    --accent: oklch(0.6083 0.0623 44.3588); --accent-ink: oklch(1 0 0); --accent-wash: oklch(0.8502 0.0389 49.0874); --error: oklch(0.6875 0.1420 21.4566);
+  }
+  html[data-theme="mocha-mousse"][data-chrome="dark"] {
+    --paper: oklch(0.2721 0.0141 48.1783); --surface: oklch(0.3291 0.0156 50.8936); --stage: oklch(0.4063 0.0255 40.3627);
+    --ink: oklch(0.9529 0.0146 102.4597); --line: oklch(0.4063 0.0255 40.3627);
+    --accent: oklch(0.7272 0.0539 52.3320); --accent-ink: oklch(0.2721 0.0141 48.1783); --accent-wash: oklch(0.7473 0.0387 80.5476); --error: oklch(0.6875 0.1420 21.4566);
+  }
+
+  html[data-theme="clean-slate"][data-chrome="light"] {
+    --paper: oklch(0.9842 0.0034 247.8575); --surface: oklch(1 0 0); --stage: oklch(0.9670 0.0029 264.5419);
+    --ink: oklch(0.2795 0.0368 260.0310); --line: oklch(0.8717 0.0093 258.3382);
+    --accent: oklch(0.5854 0.2041 277.1173); --accent-ink: oklch(1 0 0); --accent-wash: oklch(0.9299 0.0334 272.7879); --error: oklch(0.6368 0.2078 25.3313);
+  }
+  html[data-theme="clean-slate"][data-chrome="dark"] {
+    --paper: oklch(0.2077 0.0398 265.7549); --surface: oklch(0.2795 0.0368 260.0310); --stage: oklch(0.2427 0.0381 259.9437);
+    --ink: oklch(0.9288 0.0126 255.5078); --line: oklch(0.4461 0.0263 256.8018);
+    --accent: oklch(0.6801 0.1583 276.9349); --accent-ink: oklch(0.2077 0.0398 265.7549); --accent-wash: oklch(0.3729 0.0306 259.7328); --error: oklch(0.6368 0.2078 25.3313);
+  }
+
+  html[data-theme="solar-dusk"][data-chrome="light"] {
+    --paper: oklch(0.9885 0.0057 84.5659); --surface: oklch(0.9686 0.0091 78.2818); --stage: oklch(0.9363 0.0218 83.2637);
+    --ink: oklch(0.3660 0.0251 49.6085); --line: oklch(0.8866 0.0404 89.6994);
+    --accent: oklch(0.5553 0.1455 48.9975); --accent-ink: oklch(1 0 0); --accent-wash: oklch(0.9000 0.0500 74.9889); --error: oklch(0.4437 0.1613 26.8994);
+  }
+  html[data-theme="solar-dusk"][data-chrome="dark"] {
+    --paper: oklch(0.2161 0.0061 56.0434); --surface: oklch(0.2685 0.0063 34.2976); --stage: oklch(0.2330 0.0073 67.4563);
+    --ink: oklch(0.9699 0.0013 106.4238); --line: oklch(0.3741 0.0087 67.5582);
+    --accent: oklch(0.7049 0.1867 47.6044); --accent-ink: oklch(1 0 0); --accent-wash: oklch(0.3598 0.0497 229.3202); --error: oklch(0.5771 0.2152 27.3250);
+  }
+
+  html[data-theme][data-chrome] {
+    /* Same specificity as the presets, declared last so muted text stays AA-safe. */
+    --ink-2: color-mix(in oklch, var(--ink) 94%, var(--paper));
+    --ink-3: color-mix(in oklch, var(--ink) 88%, var(--paper));
+    --line-2: color-mix(in oklch, var(--line) 58%, var(--paper));
+    --accent-2: var(--ink);
+    --action: var(--ink);
+    --action-hover: color-mix(in oklch, var(--ink) 92%, var(--paper));
+    --action-ink: var(--paper);
+    --error-ink: var(--ink);
+    --warn-ink: var(--ink);
+    --info-ink: var(--ink);
+    --ok-ink: var(--ink);
+    --error-wash: color-mix(in oklch, var(--error) 18%, var(--paper));
+    --error-line: color-mix(in oklch, var(--error) 38%, var(--line));
+    --warn-wash: color-mix(in oklch, var(--warn) 18%, var(--paper));
+    --warn-line: color-mix(in oklch, var(--warn) 38%, var(--line));
+    --info-wash: color-mix(in oklch, var(--info) 18%, var(--paper));
+    --info-line: color-mix(in oklch, var(--info) 38%, var(--line));
+    --ok-wash: color-mix(in oklch, var(--ok) 18%, var(--paper));
+    --ok-line: color-mix(in oklch, var(--ok) 38%, var(--line));
+    --shadow-card: 0 1px 2px color-mix(in oklch, var(--ink) 5%, transparent), 0 6px 20px color-mix(in oklch, var(--ink) 6%, transparent);
+    --shadow-pop: 0 2px 6px color-mix(in oklch, var(--ink) 8%, transparent), 0 14px 40px color-mix(in oklch, var(--ink) 10%, transparent);
+  }
+
+  html[data-theme-changing] *, html[data-theme-changing] *::before, html[data-theme-changing] *::after { transition: none !important; }
+
   body {
     background:
       radial-gradient(110% 60% at 50% -8%, var(--accent-wash) 0%, transparent 60%),
@@ -279,6 +391,7 @@ export function renderHtml(report: Report): string {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
   }
@@ -292,18 +405,28 @@ export function renderHtml(report: Report): string {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
     overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .skip-link {
+    position: fixed; top: calc(8px + env(safe-area-inset-top)); left: 8px; z-index: 100;
+    padding: 8px 12px; border-radius: var(--r-sm); color: var(--action-ink); background: var(--action);
+    font: 600 12px var(--mono); text-decoration: none; transform: translateY(-160%);
+  }
+  .skip-link:focus { transform: translateY(0); }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+  h1, h2, h3, [id] { scroll-margin-top: calc(76px + env(safe-area-inset-top)); }
 
   /* ── Top bar ── */
   .topbar {
     position: sticky; top: 0; z-index: 20;
-    background: oklch(97.6% 0.006 75 / 0.82);
+    padding-top: env(safe-area-inset-top);
+    background: color-mix(in oklab, var(--paper) 82%, transparent);
     backdrop-filter: saturate(1.4) blur(10px);
     -webkit-backdrop-filter: saturate(1.4) blur(10px);
     border-bottom: 1px solid var(--line);
   }
   .topbar__inner {
     display: flex; align-items: center; gap: 16px;
+    padding-left: max(28px, env(safe-area-inset-left));
+    padding-right: max(28px, env(safe-area-inset-right));
     padding-block: 14px; min-height: 60px;
   }
   .brand {
@@ -322,28 +445,26 @@ export function renderHtml(report: Report): string {
     text-decoration: none; padding: 4px 10px; border-radius: var(--r-sm);
     border: 1px solid transparent; transition: border-color 0.18s var(--ease), color 0.18s var(--ease);
   }
-  .target:hover { color: var(--ink); border-color: var(--line); }
   .verdict {
     display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
     padding: 6px 13px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
     border: 1px solid transparent; white-space: nowrap;
   }
   .verdict__dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-  .verdict--ok { color: var(--ok); background: var(--ok-wash); border-color: var(--ok-line); }
-  .verdict--error { color: var(--error); background: var(--error-wash); border-color: var(--error-line); }
-  .verdict--warn { color: var(--warn); background: var(--warn-wash); border-color: var(--warn-line); }
-  .verdict--info { color: var(--info); background: var(--info-wash); border-color: var(--info-line); }
-  .verdict--ok .verdict__dot { animation: pulse 2s var(--ease) infinite; }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+  .verdict--ok { color: var(--ok-ink); background: var(--ok-wash); border-color: var(--ok-line); }
+  .verdict--error { color: var(--error-ink); background: var(--error-wash); border-color: var(--error-line); }
+  .verdict--warn { color: var(--warn-ink); background: var(--warn-wash); border-color: var(--warn-line); }
+  .verdict--info { color: var(--info-ink); background: var(--info-wash); border-color: var(--info-line); }
 
   /* ── Summary strip ── */
   .summary { padding-top: 30px; }
   .summary__title {
     font-size: clamp(22px, 4vw, 30px); line-height: 1.1; letter-spacing: -0.025em;
-    color: var(--ink); max-width: 24ch;
+    color: var(--ink); max-width: 24ch; text-wrap: balance;
   }
   .summary__title b { color: var(--accent-2); font-weight: 600; }
-  .summary__lede { max-width: 68ch; margin: 10px 0 0; color: var(--ink-2); font-size: 13.5px; }
+  .summary__lede { max-width: 68ch; margin: 10px 0 0; color: var(--ink-2); font-size: 13.5px; text-wrap: pretty; }
+  .summary__url { max-width: 100%; margin: 9px 0 0; color: var(--ink-3); font: 11.5px/1.45 var(--mono); overflow-wrap: anywhere; }
   .summary__meta {
     margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px 10px;
     font-family: var(--mono); font-size: 12px; color: var(--ink-2);
@@ -354,10 +475,10 @@ export function renderHtml(report: Report): string {
     border: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap;
   }
   .chip svg { width: 13px; height: 13px; opacity: 0.7; }
-  .chip--error { color: var(--error); border-color: var(--error-line); background: var(--error-wash); }
-  .chip--warn { color: var(--warn); border-color: var(--warn-line); background: var(--warn-wash); }
-  .chip--info { color: var(--info); border-color: var(--info-line); background: var(--info-wash); }
-  .chip--ok { color: var(--ok); border-color: var(--ok-line); background: var(--ok-wash); }
+  .chip--error { color: var(--error-ink); border-color: var(--error-line); background: var(--error-wash); }
+  .chip--warn { color: var(--warn-ink); border-color: var(--warn-line); background: var(--warn-wash); }
+  .chip--info { color: var(--info-ink); border-color: var(--info-line); background: var(--info-wash); }
+  .chip--ok { color: var(--ok-ink); border-color: var(--ok-line); background: var(--ok-wash); }
   .chip--muted { color: var(--ink-3); }
 
   main { flex: 1; padding-bottom: 56px; }
@@ -372,7 +493,20 @@ export function renderHtml(report: Report): string {
     font-family: var(--mono); font-size: 11px; font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3);
   }
-  .section__support { margin: 5px 0 0; max-width: 68ch; color: var(--ink-2); font-size: 12.5px; }
+  .section__support { margin: 5px 0 0; max-width: 68ch; color: var(--ink-2); font-size: 12.5px; text-wrap: pretty; }
+
+  /* ── Report chrome theme ── */
+  .themebar {
+    margin-top: 18px; padding: 12px; display: flex; align-items: end; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: var(--r-md);
+    background: color-mix(in oklab, var(--surface) 78%, transparent); box-shadow: var(--shadow-card);
+  }
+  .themebar__field { display: grid; gap: 5px; min-width: min(100%, 230px); }
+  .themebar__label { color: var(--ink-3); font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+  .themebar__select {
+    min-height: 34px; padding: 5px 32px 5px 10px; border: 1px solid var(--line); border-radius: var(--r-sm);
+    color: var(--ink); background: var(--surface); font: 600 12px var(--sans); cursor: pointer;
+  }
 
   /* ── Appearance toggle ── */
   .seg {
@@ -381,21 +515,22 @@ export function renderHtml(report: Report): string {
   }
   .seg__btn {
     font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
-    color: var(--ink-2); background: transparent; border: 0; border-radius: 999px;
+    color: var(--ink); background: transparent; border: 0; border-radius: 999px;
     padding: 5px 14px; display: inline-flex; align-items: center; gap: 6px;
-    transition: color 0.18s var(--ease);
+    touch-action: manipulation; user-select: none;
+    transition: transform 0.12s var(--ease), color 0.12s var(--ease);
   }
   .seg__btn svg { width: 13px; height: 13px; }
   .seg__btn[aria-pressed="true"] {
     color: var(--ink); background: var(--surface); box-shadow: var(--shadow-card);
   }
+  .seg__btn:active { transform: scale(0.96); }
 
   /* ── Card stage ── */
   .stage {
     border-radius: var(--r-lg); padding: 26px;
-    background: var(--stage);
-    border: 1px solid var(--line);
-    transition: background 0.35s var(--ease), border-color 0.35s var(--ease);
+    background: var(--card-stage-light);
+    border: 1px solid oklch(89% 0.008 75);
   }
   .stage[data-appearance="dark"] { background: var(--stage-dark); border-color: oklch(34% 0.02 264); }
   .grid {
@@ -406,16 +541,16 @@ export function renderHtml(report: Report): string {
   .card { min-width: 0; }
   .card__head {
     display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-    color: var(--ink-2);
+    color: var(--card-stage-light-ink);
   }
-  .stage[data-appearance="dark"] .card__head { color: oklch(78% 0.01 264); }
+  .stage[data-appearance="dark"] .card__head { color: var(--card-stage-dark-ink); }
   .card__mark { width: 16px; height: 16px; flex-shrink: 0; }
   .card__name { font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; }
   .card__note {
     margin-left: auto; font-family: var(--mono); font-size: 10.5px;
-    letter-spacing: 0.02em; color: var(--ink-3);
+    letter-spacing: 0.02em; color: var(--card-stage-light-muted);
   }
-  .stage[data-appearance="dark"] .card__note { color: oklch(58% 0.01 264); }
+  .stage[data-appearance="dark"] .card__note { color: var(--card-stage-dark-muted); }
 
   /* shared mock image */
   .mock__img {
@@ -425,7 +560,7 @@ export function renderHtml(report: Report): string {
   .mock__img--missing {
     display: flex; align-items: center; justify-content: center;
     background: repeating-linear-gradient(45deg, oklch(91% 0.01 75) 0 10px, oklch(93% 0.008 75) 10px 20px);
-    color: var(--ink-3); font-family: var(--mono); font-size: 11px;
+    color: #4b5563; font-family: var(--mono); font-size: 11px;
     letter-spacing: 0.06em; text-transform: uppercase;
   }
   .mock__line-clamp { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
@@ -443,6 +578,7 @@ export function renderHtml(report: Report): string {
   .mock--fb .mock__desc { font-size: 13px; color: #606770; margin: 3px 0 0; line-height: 1.3; -webkit-line-clamp: 1; }
   [data-appearance="dark"] .mock--fb { background: #242526; border-color: #393a3b; }
   [data-appearance="dark"] .mock--fb .mock__img { border-bottom-color: #393a3b; }
+  [data-appearance="dark"] .mock--fb .mock__img--missing { color: #d8dadf; background: repeating-linear-gradient(45deg, #242526 0 10px, #303132 10px 20px); }
   [data-appearance="dark"] .mock--fb .mock__body { background: #3a3b3c; }
   [data-appearance="dark"] .mock--fb .mock__site { color: #b0b3b8; }
   [data-appearance="dark"] .mock--fb .mock__title { color: #e4e6eb; }
@@ -487,6 +623,7 @@ export function renderHtml(report: Report): string {
   .mock--li .mock__title { font-size: 14px; font-weight: 600; color: rgba(0,0,0,0.9); line-height: 1.29; -webkit-line-clamp: 2; }
   .mock--li .mock__site { font-size: 12px; color: rgba(0,0,0,0.6); margin-top: 4px; }
   [data-appearance="dark"] .mock--li { background: #1b1f23; border-color: #38434f; }
+  [data-appearance="dark"] .mock--li .mock__img--missing { color: #d8dde3; background: repeating-linear-gradient(45deg, #1b1f23 0 10px, #252b31 10px 20px); }
   [data-appearance="dark"] .mock--li .mock__body { background: #1b1f23; }
   [data-appearance="dark"] .mock--li .mock__title { color: rgba(255,255,255,0.9); }
   [data-appearance="dark"] .mock--li .mock__site { color: rgba(255,255,255,0.6); }
@@ -550,12 +687,12 @@ export function renderHtml(report: Report): string {
     font: inherit; font-family: var(--mono); font-size: 11px; font-weight: 600;
     color: var(--ink-2); background: transparent; border: 1px solid var(--line);
     border-radius: var(--r-sm); padding: 4px 10px; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 5px;
-    transition: color 0.18s var(--ease), border-color 0.18s var(--ease), background 0.18s var(--ease);
+    display: inline-flex; align-items: center; gap: 5px; touch-action: manipulation; user-select: none;
+    transition: transform 0.12s var(--ease), color 0.12s var(--ease), border-color 0.12s var(--ease), background 0.12s var(--ease);
   }
   .copy-btn svg { width: 12px; height: 12px; }
-  .copy-btn:hover { color: var(--ink); border-color: var(--ink-3); }
-  .copy-btn[data-state="copied"] { color: var(--ok); border-color: var(--ok-line); background: var(--ok-wash); }
+  .copy-btn:active { transform: scale(0.96); }
+  .copy-btn[data-state="copied"] { color: var(--ok-ink); border-color: var(--ok-line); background: var(--ok-wash); }
 
   /* issues */
   .issues { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
@@ -568,21 +705,21 @@ export function renderHtml(report: Report): string {
   .issue--info { background: var(--info-wash); border-color: var(--info-line); }
   .issue__icon { width: 20px; height: 20px; margin-top: 1px; }
   .issue__icon svg { width: 20px; height: 20px; }
-  .issue--error .issue__icon { color: var(--error); }
-  .issue--warn .issue__icon { color: var(--warn); }
-  .issue--info .issue__icon { color: var(--info); }
+  .issue--error .issue__icon { color: var(--error-ink); }
+  .issue--warn .issue__icon { color: var(--warn-ink); }
+  .issue--info .issue__icon { color: var(--info-ink); }
   .issue__body { min-width: 0; }
   .issue__field { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
-  .issue--error .issue__field { color: var(--error); }
-  .issue--warn .issue__field { color: var(--warn); }
-  .issue--info .issue__field { color: var(--info); }
-  .issue__msg { margin: 2px 0 0; font-size: 13px; line-height: 1.42; color: var(--ink); }
+  .issue--error .issue__field { color: var(--error-ink); }
+  .issue--warn .issue__field { color: var(--warn-ink); }
+  .issue--info .issue__field { color: var(--info-ink); }
+  .issue__msg { margin: 2px 0 0; font-size: 13px; line-height: 1.42; color: var(--ink); overflow-wrap: anywhere; }
   .issue__details { margin: 8px 0 0; display: grid; gap: 5px; }
   .issue__details div { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; }
   .issue__details dt { font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
-  .issue__details dd { margin: 0; color: var(--ink-2); font-size: 12px; line-height: 1.42; }
+  .issue__details dd { margin: 0; min-width: 0; color: var(--ink-2); font-size: 12px; line-height: 1.42; overflow-wrap: anywhere; }
 
-  .clean { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 26px 12px; color: var(--ok); }
+  .clean { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 26px 12px; color: var(--ok-ink); }
   .clean svg { width: 30px; height: 30px; }
   .clean p { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); }
   .clean span { font-size: 12.5px; color: var(--ink-2); font-weight: 400; }
@@ -607,30 +744,51 @@ export function renderHtml(report: Report): string {
   .resolved__platform, .resolved__field { font-family: var(--mono); color: var(--ink-3); }
   .resolved__source { min-width: 0; overflow-wrap: anywhere; color: var(--ink); }
   .resolved__source b { color: var(--accent-2); font-weight: 600; }
-  @media (max-width: 480px) { .resolved__row { grid-template-columns: 72px 64px minmax(0, 1fr); } }
+  @media (max-width: 480px) {
+    .resolved__row { grid-template-columns: 72px minmax(0, 1fr); gap: 2px 8px; align-items: start; }
+    .resolved__field { grid-column: 2; grid-row: 1; }
+    .resolved__source { grid-column: 2; grid-row: 2; }
+  }
 
   .repair { display: grid; gap: 18px; }
   .repair__head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: center; }
   .repair__title { margin: 0; font-size: 14px; }
-  .repair__copy { margin: 5px 0 0; color: var(--ink-2); font-size: 12.5px; max-width: 70ch; }
+  .repair__copy { margin: 5px 0 0; color: var(--ink-2); font-size: 12.5px; max-width: 70ch; text-wrap: pretty; }
   .repair__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
   .repair__outputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .repair__output { min-width: 0; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--paper); overflow: hidden; }
   .repair__output summary { cursor: pointer; padding: 10px 12px; font: 600 11px var(--mono); color: var(--ink-2); }
   .repair__output[open] summary { border-bottom: 1px solid var(--line); }
   .repair__output pre { margin: 0; padding: 12px; max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.55 var(--mono); color: var(--ink); }
-  .copy-btn--primary { color: var(--surface); background: var(--accent-2); border-color: var(--accent-2); }
-  .copy-btn--primary:hover { color: white; background: var(--accent); border-color: var(--accent); }
+  .copy-btn--primary { color: var(--action-ink); background: var(--action); border-color: var(--action); }
   @media (max-width: 700px) { .repair__head, .repair__outputs { grid-template-columns: 1fr; } .repair__actions { justify-content: flex-start; } }
 
   /* footer */
-  .footer { border-top: 1px solid var(--line); }
+  .footer { border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
   .footer__inner {
     display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+    padding-left: max(28px, env(safe-area-inset-left));
+    padding-right: max(28px, env(safe-area-inset-right));
     padding-block: 22px; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
   }
   .footer__brand { display: inline-flex; align-items: center; gap: 6px; }
   .footer__brand b { color: var(--ink-2); font-weight: 600; }
+
+  @media (hover: hover) and (pointer: fine) {
+    .target:hover { color: var(--ink); border-color: var(--line); }
+    .copy-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+    .copy-btn--primary:hover { color: var(--action-ink); background: var(--action-hover); border-color: var(--action-hover); }
+  }
+  @media (pointer: coarse) {
+    .seg__btn, .copy-btn { min-height: 44px; padding-inline: 14px; }
+    .themebar__select { min-height: 44px; }
+  }
+  @media (max-width: 600px) {
+    .topbar__inner, .footer__inner {
+      padding-left: max(16px, env(safe-area-inset-left));
+      padding-right: max(16px, env(safe-area-inset-right));
+    }
+  }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
@@ -638,20 +796,22 @@ export function renderHtml(report: Report): string {
 </style>
 </head>
 <body>
+  <a class="skip-link" href="#content">Skip to report</a>
   <header class="topbar">
     <div class="wrap topbar__inner">
       <span class="brand"><span class="brand__dot" aria-hidden="true"></span>metaprev</span>
-      <a class="target" href="${href}" target="_blank" rel="noopener" title="${finalUrlEsc}">${finalUrlEsc}</a>
+      <a class="target" href="${href}" target="_blank" rel="noopener" title="${finalUrlEsc}" aria-describedby="report-url">${finalUrlEsc}</a>
       <span class="verdict verdict--${verdict.kind}">
         <span class="verdict__dot" aria-hidden="true"></span>${escapeHtml(verdict.label)}
       </span>
     </div>
   </header>
 
-  <main>
-    <section class="wrap summary rise">
+  <main id="content">
+    <section class="wrap summary">
       <h1 class="summary__title">Share preview for <b>${escapeHtml(pageHost || 'your link')}</b></h1>
       <p class="summary__lede">Representative previews built from the metadata and image fetched in this run. Platform UI, experiments, and cached unfurls can differ; the source labels below show every fallback metaprev used.</p>
+      <p class="summary__url" id="report-url">${finalUrlEsc}</p>
       <div class="summary__meta">
         <span class="chip chip--muted">HTTP ${escapeHtml(String(report.status))}</span>
         ${dims ? `<span class="chip chip--muted">${escapeHtml(dims)}</span>` : ''}
@@ -661,24 +821,44 @@ export function renderHtml(report: Report): string {
         ${infoCount ? `<span class="chip chip--info">${ISSUE_ICONS.info}${pluralize(infoCount, 'note')}</span>` : ''}
         ${totalIssues === 0 ? `<span class="chip chip--ok">No issues</span>` : ''}
       </div>
+      <div class="themebar" aria-label="Report chrome theme">
+        <label class="themebar__field">
+          <span class="themebar__label">Report theme</span>
+          <select class="themebar__select" data-theme-select>
+            <option value="workbench">Workbench</option>
+            <option value="vintage-paper">Vintage Paper</option>
+            <option value="modern-minimal">Modern Minimal</option>
+            <option value="mocha-mousse">Mocha Mousse</option>
+            <option value="clean-slate">Clean Slate</option>
+            <option value="solar-dusk">Solar Dusk</option>
+          </select>
+        </label>
+        <div>
+          <span class="themebar__label">Report scheme</span>
+          <div class="seg seg--scheme" role="group" aria-label="Report color scheme">
+            <button type="button" class="seg__btn" data-chrome-set="light" aria-pressed="true">Light</button>
+            <button type="button" class="seg__btn" data-chrome-set="dark" aria-pressed="false">Dark</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="wrap section">
       <div class="section__head">
         <div>
           <h2 class="section__label">Platform workspace</h2>
-          <p class="section__support">Compare the fields each card consumes. X prefers twitter:* values; the other previews use Open Graph. Slack classic unfurls also inspect common Open Graph and X metadata, but their UI is not represented by the Discord card.</p>
+          <p class="section__support">Compare the fields each card consumes. Facebook and LinkedIn use the Open Graph path; X prefers twitter:* values, and Discord is shown as its own representative mock. Slack classic unfurls inspect common Open Graph and X metadata, but Slack is not represented by the Discord mock. Current docs.x.com does not publish Cards image rules.</p>
         </div>
-        <div class="seg" role="group" aria-label="Preview appearance">
+        <div class="seg" role="group" aria-label="Card appearance">
           <button type="button" class="seg__btn" data-appearance-set="light" aria-pressed="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>Light
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>Light
           </button>
           <button type="button" class="seg__btn" data-appearance-set="dark" aria-pressed="false">
-            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Dark
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>Dark
           </button>
         </div>
       </div>
-      <div class="stage rise" id="stage" data-appearance="light" style="animation-delay:0.06s">
+      <div class="stage" id="stage" data-appearance="light">
         <div class="grid">
           ${cardMock('Facebook', 'fb', ogCard, ogSources)}
           ${cardMock('X', 'x', xCard, xSources)}
@@ -692,10 +872,10 @@ export function renderHtml(report: Report): string {
       <div class="section__head">
         <div>
           <h2 class="section__label" id="asset-title">Image inspection</h2>
-          <p class="section__support">Cover shows the deterministic 1.91:1 crop used by the mocks. Fit keeps the whole asset visible, so edge loss and padding are easy to compare.</p>
+          <p class="section__support">This inspection covers og:image against LinkedIn’s current 1.91:1 guidance and retained Facebook guidance that could not be reverified because its first-party pages returned HTTP 429. Fit keeps the whole Open Graph asset visible. A distinct twitter:image is previewed separately in the X mock; these Open Graph findings do not validate that asset for X, whose current image rules are undocumented.</p>
         </div>
       </div>
-      <div class="panel rise" style="animation-delay:0.1s">
+      <div class="panel">
         <div class="panel__body asset-grid">
           <div class="asset-views">
             <figure class="asset-view">
@@ -709,12 +889,12 @@ export function renderHtml(report: Report): string {
           </div>
           <dl class="asset-readout">
             <div><dt>Decoded size</dt><dd>${escapeHtml(dims ?? 'Unknown')}</dd></div>
-            <div><dt>Aspect ratio</dt><dd>${escapeHtml(ratio ?? 'Unknown')} · target 1.91:1</dd></div>
+            <div><dt>Aspect ratio</dt><dd>${escapeHtml(ratio ?? 'Unknown')} · LinkedIn workspace frame 1.91:1; Facebook guidance not reverified</dd></div>
             <div><dt>Cover result</dt><dd>${escapeHtml(crop)}</dd></div>
             <div><dt>Response</dt><dd>${escapeHtml([ctype, bytes].filter(Boolean).join(' · ') || 'Unknown')}</dd></div>
             ${detectedType && detectedType !== ctype ? `<div><dt>Detected bytes</dt><dd>${escapeHtml(detectedType)}</dd></div>` : ''}
             <div><dt>OG source</dt><dd>${escapeHtml(m.ogImage ?? 'No og:image')}</dd></div>
-            ${m.twitterImage && m.twitterImage !== m.ogImage ? `<div><dt>X override</dt><dd>${escapeHtml(m.twitterImage)}</dd></div>` : ''}
+            ${m.twitterImage && m.twitterImage !== m.ogImage ? `<div><dt>X override</dt><dd>${escapeHtml(m.twitterImage)} · previewed separately; not covered by OG findings</dd></div>` : ''}
           </dl>
         </div>
       </div>
@@ -722,19 +902,19 @@ export function renderHtml(report: Report): string {
 
     <section class="wrap section">
       <div class="panels">
-        <div class="panel rise" style="animation-delay:0.12s">
+        <div class="panel">
           <div class="panel__head">
-            <span class="panel__title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-3)"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <h2 class="panel__title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-3)" aria-hidden="true"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
               Validation
               ${totalIssues > 0 ? `<span class="panel__count">${totalIssues}</span>` : ''}
-            </span>
+            </h2>
             ${totalIssues > 0 ? copyButton('issues', 'Copy findings') : ''}
           </div>
           <div class="panel__body">
             ${totalIssues === 0
               ? `<div class="clean">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                   <p>No validation issues found</p>
                   <span>Review the visual crop and source fallbacks before shipping.</span>
                 </div>`
@@ -742,12 +922,12 @@ export function renderHtml(report: Report): string {
           </div>
         </div>
 
-        <div class="panel rise" style="animation-delay:0.16s">
+        <div class="panel">
           <div class="panel__head">
-            <span class="panel__title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-3)"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <h2 class="panel__title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink-3)" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
               Parsed meta
-            </span>
+            </h2>
             ${copyButton('facts', 'Copy facts')}
           </div>
           <div class="panel__body">
@@ -768,7 +948,7 @@ export function renderHtml(report: Report): string {
     </section>
 
     <section class="wrap section" aria-labelledby="repair-title">
-      <div class="panel rise" style="animation-delay:0.2s">
+      <div class="panel">
         <div class="panel__body repair">
           <div class="repair__head">
             <div>
@@ -807,6 +987,55 @@ export function renderHtml(report: Report): string {
   <script id="metaprev-data" type="application/json" nonce="${scriptNonce}">${escapeForScriptJson(copyPayloads)}</script>
   <script nonce="${scriptNonce}">
     (function () {
+      var root = document.documentElement;
+      var themeSelect = document.querySelector('[data-theme-select]');
+      var chromeButtons = document.querySelectorAll('[data-chrome-set]');
+      var themeKey = 'metaprev-chrome-theme';
+      var schemeKey = 'metaprev-chrome-scheme';
+      var themes = ['workbench', 'vintage-paper', 'modern-minimal', 'mocha-mousse', 'clean-slate', 'solar-dusk'];
+      function readPreference(key) {
+        try { return localStorage.getItem(key); } catch (e) { return null; }
+      }
+      function writePreference(key, value) {
+        try { localStorage.setItem(key, value); } catch (e) {}
+      }
+      function finishThemeChange() {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () { root.removeAttribute('data-theme-changing'); });
+        });
+      }
+      function setChrome(theme, scheme, persist) {
+        var nextTheme = themes.indexOf(theme) >= 0 ? theme : 'workbench';
+        var nextScheme = scheme === 'dark' ? 'dark' : 'light';
+        root.setAttribute('data-theme-changing', '');
+        root.setAttribute('data-theme', nextTheme);
+        root.setAttribute('data-chrome', nextScheme);
+        root.style.colorScheme = nextScheme;
+        if (themeSelect) themeSelect.value = nextTheme;
+        chromeButtons.forEach(function (button) {
+          button.setAttribute('aria-pressed', button.getAttribute('data-chrome-set') === nextScheme ? 'true' : 'false');
+        });
+        if (persist) {
+          writePreference(themeKey, nextTheme);
+          writePreference(schemeKey, nextScheme);
+        }
+        finishThemeChange();
+      }
+      var savedTheme = readPreference(themeKey);
+      var savedScheme = readPreference(schemeKey);
+      var preferredScheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      setChrome(savedTheme || 'workbench', savedScheme || preferredScheme, false);
+      if (themeSelect) {
+        themeSelect.addEventListener('change', function () {
+          setChrome(themeSelect.value, root.getAttribute('data-chrome'), true);
+        });
+      }
+      chromeButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          setChrome(root.getAttribute('data-theme'), button.getAttribute('data-chrome-set'), true);
+        });
+      });
+
       var stage = document.getElementById('stage');
       var segButtons = document.querySelectorAll('[data-appearance-set]');
       function setAppearance(mode) {
@@ -932,7 +1161,7 @@ type CopyTarget = 'issues' | 'facts' | 'snippet' | 'repair' | 'agent'
 
 function copyButton(target: CopyTarget, label: string, primary = false): string {
   return `<button class="copy-btn${primary ? ' copy-btn--primary' : ''}" type="button" data-copy-target="${target}">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
     <span class="copy-btn__label">${escapeHtml(label)}</span>
   </button>`
 }

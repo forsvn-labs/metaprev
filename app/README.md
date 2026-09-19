@@ -47,7 +47,7 @@ npx @forsvn/metaprev http://localhost:3000   # your dev server, whatever the por
 | Check | Why |
 |---|---|
 | Share title and description | Errors only when no usable value exists; metaprev does not pad copy to generic SEO character targets |
-| Required Open Graph fields | Flags a missing `og:title`, `og:type`, `og:image`, or canonical share URL with the exact fallback observed |
+| Required Open Graph fields | Flags a missing `og:title`, `og:type`, `og:image`, or `og:url`. A canonical link is not treated as a substitute for `og:url`.
 | `og:image` is absolute URL | Crawlers fetch the URL standalone and fail on relative paths |
 | `og:image` returns a successful response | Catches stale or wrong URLs |
 | `og:image` content-type | Errors when a non-image response cannot be decoded; warns on SVG and never embeds it in the report |
@@ -56,7 +56,7 @@ npx @forsvn/metaprev http://localhost:3000   # your dev server, whatever the por
 | `og:image:width` / `:height` | Shows whether declared dimensions match the decoded asset |
 | `og:image:alt` | Notes when the image lacks the description recommended by the Open Graph protocol |
 | `twitter:card` | Distinguishes `summary_large_image` from the compact `summary` treatment |
-| `og:url` / canonical | Helps platforms dedupe shares |
+| `og:url` | Required by Open Graph and LinkedIn. A canonical link may be offered as a candidate to verify, not as a substitute.
 
 Three severity levels: **error** (broken input), **warn** (real compatibility or presentation risk), and **info** (standards or resilience improvement). Each issue in text and JSON includes `level`, `code`, `field`, `message`, `impact`, `evidence`, and `fix`. The original `level` / `field` / `message` keys remain available for existing scripts.
 

@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Corrected report-chrome contrast: muted `--ink-2` is derived after every theme preset so it wins the cascade, status chips use `--ok-ink` instead of `--ok`, and inactive chrome controls use primary ink. Facebook and LinkedIn missing-image labels stay card-scoped.
+- Reported missing `og:url` even when a canonical link exists. Repair output may use the canonical URL only as a clearly marked candidate that must be verified.
+- Added first-party source URLs to LinkedIn threshold evidence. Facebook format, size, ratio, and first-share guidance is now explicitly marked unconfirmed because its first-party pages returned HTTP 429 during this review.
+- Prevented resolved-input rows from colliding on narrow screens.
+- Added themes for the report chrome: the default Workbench, Vintage Paper, Modern Minimal, Mocha Mousse, Clean Slate, and Solar Dusk. Each theme has a light and dark scheme. The report saves chrome choices in localStorage and reads the system color preference when no scheme has been saved.
+- Kept the platform card Light/Dark control separate from report chrome. Facebook, X, LinkedIn, and Discord retain their representative palettes, and the Slack copy still describes Open Graph/X inspection.
+- Added a skip link, complete panel heading structure, readable stage labels, wrapping for long finding evidence, safe-area padding, coarse-pointer targets, and shorter chrome motion.
+- Kept missing share title, description, and `og:image` as errors for Facebook and LinkedIn while acknowledging that Slack classic unfurls may consume X metadata.
+- Promoted missing `og:url` and `og:type` to warnings, kept `og:description` guidance tied to LinkedIn, and clarified that Open Graph lists the description as optional.
+- Scoped the 1.91:1 frame to LinkedIn's current guidance. Image resolution reports LinkedIn's 1200×627 minimum. Retained Facebook size, ratio, format, and first-share numbers only as unverified prior guidance because its first-party pages returned HTTP 429.
+- Kept the 5 MB warning LinkedIn-only. SVG and dimension findings no longer present Facebook's prior JPEG/GIF/PNG list or first-share dimension advice as currently verified.
+- Accepted absolute HTTP and HTTPS `og:image` URLs while recommending HTTPS, and clarified that a distinct `twitter:image` is previewed separately from Open Graph validation.
+- Marked current X Cards image rules as undocumented, added an informational `twitter:image:alt` finding based on withdrawn 2020 Twitter markup, and described `player` and `app` as unrendered by MetaPrev.
+- Updated repair and report copy to keep Slack's Open Graph/X inspection separate from the representative Discord mock.
+
+### Tests
+- Added regressions for canonical-only pages, cited/qualified platform evidence, contrast-safe semantic tokens, card-scoped placeholders, and the narrow resolved-input layout.
+- Added render regressions for theme attributes, preset coverage, localStorage keys, separate chrome/card controls, reduced-motion support, and nonce coverage on every inline script.
+- Added validator, repair, report, and CLI regressions for platform evidence, image thresholds, X uncertainty, Issue compatibility keys, HTTP(S) image URLs, and warning-only exit behavior.
+
 ## 0.5.0 — 2026-08-23
 
 ### Added
