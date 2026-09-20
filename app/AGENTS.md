@@ -2,16 +2,16 @@
 
 Bun CLI that fetches a URL, parses og:* / twitter:* meta tags, validates them against social-card best practices, and opens a local HTML workspace with representative Facebook, X, LinkedIn, and Discord cards. Slack uses the same inspected metadata but is not visually conflated with Discord.
 
-Published as `@forsvn/metaprev`. Mirrors the `syncthis` shape: thin `bin/*.mjs` shim spawns Bun on `bin/*.ts`.
+Published as `@forsvn/metaprev`. Mirrors the `syncthis` shape: thin `bin/*.mjs` shim. Under Bun it imports `bin/*.ts` in-process; under Node, `--help`/`--version` print locally and other commands still spawn Bun.
 
 ## Layout
 
 ```
 bin/
-  metaprev.mjs    # node shim — spawns `bun bin/metaprev.ts`
+  metaprev.mjs    # node shim — in-process under Bun; Node --help/--version skip spawn
   metaprev.ts     # Bun entry — arg parsing, orchestration, terminal output
 src/
-  fetch.ts        # fetchPage (HTML), probeImage (HEAD-equivalent + dimensions)
+  fetch.ts        # fetchPage (HTML until </head>), probeImage (cancellable GET + dimensions)
   format.ts       # shared terminal/HTML formatting helpers
   host.ts         # one shared host classifier; fetch keeps local dev, repair requires public
   inputs.ts       # canonical title/description/platform fallback policy + twitter:card vocabulary

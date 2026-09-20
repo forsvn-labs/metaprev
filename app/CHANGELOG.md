@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- `fetchPage` stops at the first `</head>` instead of draining up to 4 MB, and still uses that ceiling when the document has no head closer.
+- `probeImage` on facts/issues is a cancellable GET: it stops once dimensions decode, keeps `Content-Length` as `byteLength`, and only downloads the full body when the preview needs a data URI.
+- The `.mjs` shim runs the TypeScript entry in-process under Bun. On Node, `--help` and `--version` print without spawning Bun; other commands still do.
+- Preview HTML emits each distinct raster data URI once in CSS and points card, cover, and fit mocks at those classes.
+
+### Tests
+- Added a 2 MB-body-after-head fixture that asserts parse still works and the HTML stream cancels, including `</HEAD>` and a close tag split across chunks.
+- Added a 2 MB PNG facts-path probe that returns 1200×630 and declared size after reading far less than `Content-Length`, a missing-`Content-Length` path that discard-counts the rest, plus a preview path that still embeds.
+- Assert each distinct preview data URI appears once, and that bun/node `--help`/`--version` still print `0.6.0`.
+
 ## 0.6.0 — 2026-09-19
 
 Published as [`@forsvn/metaprev@0.6.0`](https://www.npmjs.com/package/@forsvn/metaprev/v/0.6.0) from `c030fb3` / [`v0.6.0`](https://github.com/forsvn-labs/metaprev/releases/tag/v0.6.0).
