@@ -76,7 +76,7 @@ type CardParts = {
   site: string
   title: string
   desc: string
-  cssImage: string
+  imageClass: string
   hasImage: boolean
   missingText: string
   alt: string
@@ -110,6 +110,12 @@ export function renderHtml(report: Report): string {
     : report.image
   const ogCssImage = safeDataUri(ogProbe?.dataUri)
   const xCssImage = safeDataUri(xProbe?.dataUri)
+  const ogRasterClass = ogCssImage ? 'raster-og' : ''
+  const xRasterClass = xCssImage ? (xCssImage === ogCssImage ? 'raster-og' : 'raster-x') : ''
+  const rasterCss = [
+    ogCssImage ? `.raster-og { background-image:url('${ogCssImage}'); }` : '',
+    xCssImage && xCssImage !== ogCssImage ? `.raster-x { background-image:url('${xCssImage}'); }` : '',
+  ].filter(Boolean).join('\n  ')
 
   const baseCard = {
     host: escapeHtml(pageHost),
@@ -119,7 +125,7 @@ export function renderHtml(report: Report): string {
     ...baseCard,
     title: escapeHtml(resolvePlatformInput(m, 'Open Graph', 'title').value || '(no title)'),
     desc: escapeHtml(resolvePlatformInput(m, 'Open Graph', 'description').value ?? ''),
-    cssImage: ogCssImage,
+    imageClass: ogRasterClass,
     hasImage: ogCssImage !== '',
     missingText: m.ogImage ? 'Image failed to load' : 'No og:image',
     alt: escapeHtml(m.ogImageAlt ?? 'Share image preview'),
@@ -128,7 +134,7 @@ export function renderHtml(report: Report): string {
     ...baseCard,
     title: escapeHtml(resolvePlatformInput(m, 'X', 'title').value || '(no title)'),
     desc: escapeHtml(resolvePlatformInput(m, 'X', 'description').value ?? ''),
-    cssImage: xCssImage,
+    imageClass: xRasterClass,
     hasImage: xCssImage !== '',
     missingText: m.twitterImage || m.ogImage ? 'Image failed to load' : 'No card image',
     alt: escapeHtml(m.twitterImageAlt ?? m.ogImageAlt ?? 'Share image preview'),
@@ -793,6 +799,7 @@ export function renderHtml(report: Report): string {
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
   }
+  ${rasterCss}
 </style>
 </head>
 <body>
@@ -879,11 +886,11 @@ export function renderHtml(report: Report): string {
         <div class="panel__body asset-grid">
           <div class="asset-views">
             <figure class="asset-view">
-              <div class="asset-frame asset-frame--cover${ogCssImage ? '' : ' asset-frame--empty'}"${ogCssImage ? ` style="background-image:url('${ogCssImage}')" role="img" aria-label="${escapeHtml(m.ogImageAlt ?? 'Open Graph image shown with a centered cover crop')}"` : ''}>${ogCssImage ? '' : 'No validated OG image'}</div>
+              <div class="asset-frame asset-frame--cover${ogCssImage ? ` ${ogRasterClass}` : ' asset-frame--empty'}"${ogCssImage ? ` role="img" aria-label="${escapeHtml(m.ogImageAlt ?? 'Open Graph image shown with a centered cover crop')}"` : ''}>${ogCssImage ? '' : 'No validated OG image'}</div>
               <figcaption><b>Cover crop</b>Fills a 1.91:1 card frame.</figcaption>
             </figure>
             <figure class="asset-view">
-              <div class="asset-frame asset-frame--fit${ogCssImage ? '' : ' asset-frame--empty'}"${ogCssImage ? ` style="background-image:url('${ogCssImage}')" aria-hidden="true"` : ''}>${ogCssImage ? '' : 'No validated OG image'}</div>
+              <div class="asset-frame asset-frame--fit${ogCssImage ? ` ${ogRasterClass}` : ' asset-frame--empty'}"${ogCssImage ? ' aria-hidden="true"' : ''}>${ogCssImage ? '' : 'No validated OG image'}</div>
               <figcaption><b>Whole asset</b>Fits inside the same frame.</figcaption>
             </figure>
           </div>
@@ -1093,7 +1100,7 @@ export function renderHtml(report: Report): string {
 
 function imgBlock(p: CardParts): string {
   return p.hasImage
-    ? `<div class="mock__img" style="background-image:url('${p.cssImage}')" role="img" aria-label="${p.alt}"></div>`
+    ? `<div class="mock__img${p.imageClass ? ` ${p.imageClass}` : ''}" role="img" aria-label="${p.alt}"></div>`
     : `<div class="mock__img mock__img--missing">${escapeHtml(p.missingText)}</div>`
 }
 
@@ -1114,7 +1121,7 @@ function cardMock(label: string, variant: 'fb' | 'x' | 'li' | 'dc', p: CardParts
     mock = !p.compact && p.hasImage
       ? `<div class="mock mock--x">
           <div class="mock__shot">
-            <div class="mock__img" style="background-image:url('${p.cssImage}')" role="img" aria-label="${p.alt}"></div>
+            <div class="mock__img${p.imageClass ? ` ${p.imageClass}` : ''}" role="img" aria-label="${p.alt}"></div>
             <span class="mock__domain">${p.host}</span>
           </div>
         </div>`
@@ -1125,7 +1132,7 @@ function cardMock(label: string, variant: 'fb' | 'x' | 'li' | 'dc', p: CardParts
               <div class="mock__title mock__line-clamp">${p.title}</div>
               ${p.desc ? `<div class="mock__desc mock__line-clamp">${p.desc}</div>` : ''}
             </div>
-            ${p.compact && p.hasImage ? `<div class="mock__thumb" style="background-image:url('${p.cssImage}')" role="img" aria-label="${p.alt}"></div>` : ''}
+            ${p.compact && p.hasImage ? `<div class="mock__thumb${p.imageClass ? ` ${p.imageClass}` : ''}" role="img" aria-label="${p.alt}"></div>` : ''}
           </div>
         </div>`
   } else if (variant === 'li') {

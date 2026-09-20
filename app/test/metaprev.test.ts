@@ -461,6 +461,7 @@ describe('renderHtml', () => {
       image: okImage({ dataUri: 'data:image/png;base64,AAAA' }),
     }))
     expect(html).toContain("background-image:url('data:image/png;base64,AAAA')")
+    expect(html.split('data:image/png;base64,AAAA').length - 1).toBe(1)
   })
 
   test('rejects a forged data URI from every inline style context', () => {
@@ -511,6 +512,8 @@ describe('renderHtml', () => {
     expect(html).toContain('mock__summary--with-image')
     expect(html).toContain('data:image/png;base64,AAAA')
     expect(html).toContain('data:image/png;base64,BBBB')
+    expect(html.split('data:image/png;base64,AAAA').length - 1).toBe(1)
+    expect(html.split('data:image/png;base64,BBBB').length - 1).toBe(1)
     expect(html).toContain('previewed separately; not covered by OG findings')
     expect(html).toContain('these Open Graph findings do not validate that asset for X')
     expect(html).toContain('current image rules are undocumented')

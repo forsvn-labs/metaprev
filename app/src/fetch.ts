@@ -12,9 +12,8 @@ export function isLocalUrl(url: string): boolean {
 type FetchOpts = { insecure?: boolean }
 type ProbeOpts = FetchOpts & { withDataUri?: boolean }
 
-// Cap how much HTML we pull into memory. The <head> sits at the top of the document,
-// so a few MB is plenty to find every meta tag while staying immune to multi-hundred-MB
-// or never-ending responses.
+// Cap how much HTML we pull into memory when the document has no </head>.
+// fetchPage stops at the first case-insensitive </head> when it appears sooner.
 const MAX_HTML_BYTES = 4 * 1024 * 1024
 
 // Cap image downloads too. This is a memory-safety ceiling, not a platform limit;
@@ -72,10 +71,151 @@ export async function readCappedBytes(res: Response, maxBytes: number): Promise<
   return { bytes: truncated ? buf.subarray(0, maxBytes) : buf, truncated }
 }
 
-// Read a response body up to a byte cap. Returns decoded text.
-async function readCapped(res: Response, maxBytes: number): Promise<string> {
-  const { bytes } = await readCappedBytes(res, maxBytes)
+function indexAfterCloseHead(bytes: Uint8Array): number {
+  for (let i = 0; i + 7 <= bytes.length; i++) {
+    const a = bytes[i]
+    const b = bytes[i + 1]
+    const c = bytes[i + 2]
+    const d = bytes[i + 3]
+    const e = bytes[i + 4]
+    const f = bytes[i + 5]
+    const g = bytes[i + 6]
+    if (
+      a === 0x3c &&
+      b === 0x2f &&
+      c !== undefined && (c | 32) === 0x68 &&
+      d !== undefined && (d | 32) === 0x65 &&
+      e !== undefined && (e | 32) === 0x61 &&
+      f !== undefined && (f | 32) === 0x64 &&
+      g === 0x3e
+    ) {
+      return i + 7
+    }
+  }
+  return -1
+}
+
+// Decode only the kept prefix: through </head> when present, else the 4MB ceiling.
+async function readHtmlUntilHead(res: Response, maxBytes: number): Promise<string> {
+  const body = res.body
+  if (!body) {
+    const { bytes } = await readCappedBytes(res, maxBytes)
+    return new TextDecoder('utf-8').decode(bytes)
+  }
+  const reader = body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  try {
+    let overlap = Buffer.alloc(0)
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (!value?.byteLength) continue
+      const remaining = maxBytes - total
+      if (remaining <= 0) {
+        await reader.cancel().catch(() => {})
+        break
+      }
+      const searchable = value.byteLength > remaining ? value.subarray(0, remaining) : value
+      const window = overlap.byteLength ? Buffer.concat([overlap, searchable]) : searchable
+      const end = indexAfterCloseHead(window)
+      if (end !== -1) {
+        const fromValue = end - overlap.byteLength
+        if (fromValue > 0) {
+          chunks.push(fromValue < value.byteLength ? value.subarray(0, fromValue) : value)
+          total += fromValue
+        }
+        await reader.cancel().catch(() => {})
+        break
+      }
+      if (value.byteLength > remaining) {
+        chunks.push(value.subarray(0, remaining))
+        total += remaining
+        await reader.cancel().catch(() => {})
+        break
+      }
+      chunks.push(value)
+      total += value.byteLength
+      overlap = Buffer.from(window.subarray(window.byteLength - Math.min(6, window.byteLength)))
+    }
+  } finally {
+    reader.releaseLock?.()
+  }
+  const bytes = total === 0 ? new Uint8Array() : Buffer.concat(chunks, total)
   return new TextDecoder('utf-8').decode(bytes)
+}
+
+function tryImageSize(buf: Buffer): ReturnType<typeof imageSize> | undefined {
+  try {
+    const dims = imageSize(buf)
+    if (dims.width && dims.height) return dims
+  } catch {
+    // Incomplete raster headers are expected while the buffer is still growing.
+  }
+  return undefined
+}
+
+function declaredImageLength(res: Response): number | undefined {
+  const raw = res.headers.get('content-length')
+  const declaredLen = Number(raw)
+  return raw !== null && Number.isFinite(declaredLen) && declaredLen > 0 ? declaredLen : undefined
+}
+
+// Facts/issues path: stop once image-size can read width/height. JPEG SOF can sit
+// after a large EXIF block, so keep scanning the growing prefix (at least ~512KiB,
+// and up to MAX_IMAGE_BYTES) instead of giving up after a PNG-sized first chunk.
+// Do not mark truncated on a dims-only cancel — that flag skips dataUri on preview.
+async function readImageUntilDimensions(res: Response): Promise<{ bytes: Buffer; truncated: boolean; byteLength: number }> {
+  const declared = declaredImageLength(res)
+  const body = res.body
+  if (!body) {
+    const { bytes, truncated } = await readCappedBytes(res, MAX_IMAGE_BYTES)
+    return { bytes, truncated, byteLength: declared ?? bytes.byteLength }
+  }
+  const reader = body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  let truncated = false
+  let haveDims = false
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (!value?.byteLength) continue
+      chunks.push(value)
+      total += value.byteLength
+      if (!haveDims && tryImageSize(Buffer.concat(chunks, total))) haveDims = true
+      if (haveDims) {
+        if (declared != null) {
+          await reader.cancel().catch(() => {})
+          break
+        }
+        for (;;) {
+          const rest = await reader.read()
+          if (rest.done) break
+          if (!rest.value?.byteLength) continue
+          total += rest.value.byteLength
+          if (total > MAX_IMAGE_BYTES) {
+            total = MAX_IMAGE_BYTES
+            truncated = true
+            await reader.cancel().catch(() => {})
+            break
+          }
+        }
+        break
+      }
+      if (total > MAX_IMAGE_BYTES) {
+        truncated = true
+        await reader.cancel().catch(() => {})
+        break
+      }
+    }
+  } finally {
+    reader.releaseLock?.()
+  }
+  const buf = Buffer.concat(chunks)
+  const bytes = truncated && !haveDims ? buf.subarray(0, MAX_IMAGE_BYTES) : buf
+  return { bytes, truncated, byteLength: declared ?? (truncated ? MAX_IMAGE_BYTES : total) }
 }
 
 function guessMime(url: string): string | undefined {
@@ -128,7 +268,7 @@ export async function fetchPage(url: string, opts: FetchOpts = {}, timeoutMs = 1
       await res.body?.cancel().catch(() => {})
       throw new Error(`page returned ${contentType}, not HTML`)
     }
-    const html = await readCapped(res, MAX_HTML_BYTES)
+    const html = await readHtmlUntilHead(res, MAX_HTML_BYTES)
     return { finalUrl: res.url || url, status: res.status, html }
   } catch (err) {
     throw timeoutError(err, ctrl, timeoutMs)
@@ -170,11 +310,22 @@ export async function probeImage(url: string, base: string, opts: ProbeOpts = {}
       probe.error = `HTTP ${res.status}`
       return probe
     }
-    const { bytes: buf, truncated } = await readCappedBytes(res, MAX_IMAGE_BYTES)
-    // Trust Content-Length for the true size when present; otherwise fall back to what we
-    // read (which equals the cap when truncated — still enough to trip the "too big" warn).
-    const declaredLen = Number(res.headers.get('content-length'))
-    probe.byteLength = Number.isFinite(declaredLen) && declaredLen > 0 ? declaredLen : buf.byteLength
+    // Preview embeds a data URI, so it still needs the full (capped) body. facts/issues
+    // only need dimensions plus an honest size: cancel once image-size succeeds when
+    // Content-Length is present, otherwise discard-count the rest without buffering it.
+    let buf: Buffer
+    let truncated: boolean
+    if (opts.withDataUri) {
+      const read = await readCappedBytes(res, MAX_IMAGE_BYTES)
+      buf = read.bytes
+      truncated = read.truncated
+      probe.byteLength = declaredImageLength(res) ?? buf.byteLength
+    } else {
+      const read = await readImageUntilDimensions(res)
+      buf = read.bytes
+      truncated = read.truncated
+      probe.byteLength = read.byteLength
+    }
     try {
       const dims = imageSize(buf)
       probe.width = dims.width

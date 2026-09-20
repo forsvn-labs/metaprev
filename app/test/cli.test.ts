@@ -1,18 +1,32 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
+import { createServer } from 'node:http'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fetchPage, probeImage } from '../src/fetch.ts'
 
 let server: ReturnType<typeof Bun.serve>
+let rawServer: ReturnType<typeof createServer>
 let base = ''
+let rawBase = ''
 let ogRequests = 0
 let xRequests = 0
+const headThenPad = { bytes: 0 }
+const largePng = { bytes: 0 }
+const countedPng = { bytes: 0 }
+const LARGE_PNG_BYTES = 2 * 1024 * 1024
+const PAD_CHUNK = 64 * 1024
 
-function pngHeader(width: number, height: number): ArrayBuffer {
+function pngBytes(width: number, height: number): Buffer {
   const bytes = Buffer.alloc(24)
   bytes.set([137, 80, 78, 71, 13, 10, 26, 10], 0)
   bytes.writeUInt32BE(13, 8)
   bytes.write('IHDR', 12)
   bytes.writeUInt32BE(width, 16)
   bytes.writeUInt32BE(height, 20)
+  return bytes
+}
+
+function pngHeader(width: number, height: number): ArrayBuffer {
+  const bytes = pngBytes(width, height)
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
 }
 
@@ -46,8 +60,8 @@ function warningOnlyHtml(): string {
   </head><body></body></html>`
 }
 
-async function runCli(...args: string[]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  const proc = Bun.spawn([process.execPath, 'bin/metaprev.ts', ...args], {
+async function runProc(cmd: string[]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  const proc = Bun.spawn(cmd, {
     cwd: process.cwd(),
     stdout: 'pipe',
     stderr: 'pipe',
@@ -61,7 +75,66 @@ async function runCli(...args: string[]): Promise<{ exitCode: number; stdout: st
   return { exitCode, stdout, stderr }
 }
 
-beforeAll(() => {
+async function runCli(...args: string[]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  return runProc([process.execPath, 'bin/metaprev.ts', ...args])
+}
+
+function writeThrottled(
+  req: IncomingMessage,
+  res: ServerResponse,
+  stats: { bytes: number },
+  first: Buffer,
+  headers: Record<string, string | number>,
+  totalBytes?: number,
+): void {
+  let sent = 0
+  let stopped = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const pad = Buffer.alloc(PAD_CHUNK, 0x78)
+
+  const stop = (): void => {
+    if (stopped) return
+    stopped = true
+    if (timer) clearTimeout(timer)
+    if (!res.writableEnded) res.end()
+  }
+
+  req.on('aborted', () => stop())
+  req.socket?.on('close', () => stop())
+  res.on('error', () => stop())
+  res.on('finish', () => stop())
+
+  res.writeHead(200, { Connection: 'close', ...headers })
+  sent += first.byteLength
+  stats.bytes += first.byteLength
+  res.write(first)
+
+  const tick = (): void => {
+    if (stopped) return
+    if (totalBytes != null && sent >= totalBytes) {
+      stop()
+      return
+    }
+    const left = totalBytes != null ? totalBytes - sent : PAD_CHUNK
+    const chunk = left < PAD_CHUNK ? pad.subarray(0, Math.max(left, 0)) : pad
+    if (chunk.byteLength === 0) {
+      stop()
+      return
+    }
+    sent += chunk.byteLength
+    stats.bytes += chunk.byteLength
+    const ok = res.write(chunk)
+    if (stopped) return
+    const schedule = (): void => {
+      if (!stopped) timer = setTimeout(tick, 5)
+    }
+    if (ok) schedule()
+    else res.once('drain', schedule)
+  }
+  timer = setTimeout(tick, 5)
+}
+
+beforeAll(async () => {
   server = Bun.serve({
     port: 0,
     fetch(req) {
@@ -91,9 +164,76 @@ beforeAll(() => {
     },
   })
   base = `http://127.0.0.1:${server.port}`
+  rawServer = createServer((req, res) => {
+    const path = req.url?.split('?')[0]
+    if (path === '/head-then-pad') {
+      const head = Buffer.from(`<!doctype html><html><head>
+        <title>Head title</title>
+        <meta property="og:title" content="From head">
+        <meta property="og:description" content="A factual description.">
+        <meta property="og:image" content="${base}/og.png">
+      </HEAD>`)
+      writeThrottled(req, res, headThenPad, head, { 'Content-Type': 'text/html; charset=utf-8' })
+      return
+    }
+    if (path === '/split-head') {
+      const prefix = Buffer.from(`<!doctype html><html><head>
+        <title>Split title</title>
+        <meta property="og:title" content="From split">
+      </hea`)
+      const suffix = Buffer.from(`d><body>${'x'.repeat(8000)}</body></html>`)
+      req.on('aborted', () => { if (!res.writableEnded) res.end() })
+      res.writeHead(200, { Connection: 'close', 'Content-Type': 'text/html; charset=utf-8' })
+      res.write(prefix)
+      setTimeout(() => {
+        if (!res.writableEnded) {
+          res.write(suffix)
+          res.end()
+        }
+      }, 15)
+      return
+    }
+    if (path === '/large.png') {
+      writeThrottled(
+        req,
+        res,
+        largePng,
+        pngBytes(1200, 630),
+        { 'Content-Type': 'image/png', 'Content-Length': LARGE_PNG_BYTES },
+        LARGE_PNG_BYTES,
+      )
+      return
+    }
+    if (path === '/counted.png') {
+      writeThrottled(
+        req,
+        res,
+        countedPng,
+        pngBytes(1200, 630),
+        { 'Content-Type': 'image/png' },
+        256 * 1024,
+      )
+      return
+    }
+    res.writeHead(404)
+    res.end()
+  })
+  await new Promise<void>((resolve, reject) => {
+    rawServer.once('error', reject)
+    rawServer.listen(0, '127.0.0.1', () => resolve())
+  })
+  const addr = rawServer.address()
+  if (!addr || typeof addr === 'string') throw new Error('expected TCP address')
+  rawBase = `http://127.0.0.1:${addr.port}`
 })
 
-afterAll(() => server.stop(true))
+afterAll(async () => {
+  server.stop(true)
+  if (rawServer.listening) {
+    rawServer.closeAllConnections?.()
+    await new Promise<void>((resolve) => rawServer.close(() => resolve()))
+  }
+})
 
 describe('CLI compatibility', () => {
   test('preserves exits 0 for clean, 1 for findings, and 2 for fetch/runtime failure', async () => {
@@ -196,5 +336,75 @@ describe('fetch hardening', () => {
     const image = await probeImage('file:///etc/passwd', `${base}/clean`, { withDataUri: true })
     expect(image).toMatchObject({ ok: false, status: 0, error: 'Image URL must use HTTP or HTTPS' })
     expect(image.dataUri).toBeUndefined()
+  })
+
+  test('stops HTML at </head> and cancels a 2MB padded body', async () => {
+    headThenPad.bytes = 0
+    const page = await fetchPage(`${rawBase}/head-then-pad`)
+    expect(page.status).toBe(200)
+    expect(page.html).toContain('From head')
+    expect(page.html.toLowerCase()).toContain('</head>')
+    expect(page.html.includes('x'.repeat(1000))).toBe(false)
+    expect(headThenPad.bytes).toBeLessThan(256 * 1024)
+  }, 10_000)
+
+  test('finds </head> when the close tag is split across chunks', async () => {
+    const page = await fetchPage(`${rawBase}/split-head`)
+    expect(page.status).toBe(200)
+    expect(page.html).toContain('From split')
+    expect(page.html.toLowerCase()).toContain('</head>')
+    expect(page.html.includes('x'.repeat(1000))).toBe(false)
+  }, 10_000)
+
+  test('facts-path image probe cancels after dimensions and keeps Content-Length', async () => {
+    largePng.bytes = 0
+    const image = await probeImage(`${rawBase}/large.png`, `${rawBase}/`)
+    expect(image.ok).toBe(true)
+    expect(image.width).toBe(1200)
+    expect(image.height).toBe(630)
+    expect(image.byteLength).toBe(LARGE_PNG_BYTES)
+    expect(image.dataUri).toBeUndefined()
+    expect(largePng.bytes).toBeLessThan(512 * 1024)
+    expect(largePng.bytes).toBeLessThan(LARGE_PNG_BYTES / 4)
+  }, 10_000)
+
+  test('facts-path image probe discard-counts size when Content-Length is missing', async () => {
+    countedPng.bytes = 0
+    const image = await probeImage(`${rawBase}/counted.png`, `${rawBase}/`)
+    expect(image.ok).toBe(true)
+    expect(image.width).toBe(1200)
+    expect(image.height).toBe(630)
+    expect(image.byteLength).toBe(256 * 1024)
+    expect(image.dataUri).toBeUndefined()
+    expect(countedPng.bytes).toBeGreaterThanOrEqual(256 * 1024)
+  }, 10_000)
+
+  test('preview image probe still reads the body and embeds a data URI', async () => {
+    largePng.bytes = 0
+    const image = await probeImage(`${rawBase}/large.png`, `${rawBase}/`, { withDataUri: true })
+    expect(image.width).toBe(1200)
+    expect(image.height).toBe(630)
+    expect(image.byteLength).toBe(LARGE_PNG_BYTES)
+    expect(image.dataUri).toStartWith('data:image/png;base64,')
+    expect(largePng.bytes).toBeGreaterThanOrEqual(LARGE_PNG_BYTES)
+  }, 15_000)
+})
+
+describe('CLI startup', () => {
+  test('prints 0.6.0 from bun ts, bun mjs, and node mjs', async () => {
+    const bunTs = await runCli('--version')
+    const bunHelp = await runCli('--help')
+    const bunMjs = await runProc([process.execPath, 'bin/metaprev.mjs', '--version'])
+    const bunMjsHelp = await runProc([process.execPath, 'bin/metaprev.mjs', '--help'])
+    const nodeVer = await runProc(['node', 'bin/metaprev.mjs', '--version'])
+    const nodeHelp = await runProc(['node', 'bin/metaprev.mjs', '--help'])
+    expect(bunTs.stdout.trim()).toBe('0.6.0')
+    expect(bunMjs.stdout.trim()).toBe('0.6.0')
+    expect(nodeVer.stdout.trim()).toBe('0.6.0')
+    expect(bunHelp.stdout).toContain('metaprev v0.6.0')
+    expect(bunMjsHelp.stdout).toBe(bunHelp.stdout)
+    expect(nodeHelp.stdout).toBe(bunHelp.stdout)
+    expect(bunTs.exitCode).toBe(0)
+    expect(nodeHelp.exitCode).toBe(0)
   })
 })
