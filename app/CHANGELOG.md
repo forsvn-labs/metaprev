@@ -12,6 +12,7 @@
 - Added a 2 MB-body-after-head fixture that asserts parse still works and the HTML stream cancels, including `</HEAD>` and a close tag split across chunks.
 - Added a 2 MB PNG facts-path probe that returns 1200×630 and declared size after reading far less than `Content-Length`, a missing-`Content-Length` path that discard-counts the rest, plus a preview path that still embeds.
 - Assert each distinct preview data URI appears once, and that bun/node `--help`/`--version` still print `0.6.0`.
+- Removed three direct cases already covered by process-level CLI checks: a clean validation result, an image served as `application/octet-stream`, and rejection of a successful non-HTML response.
 
 ## 0.6.0 — 2026-09-19
 
