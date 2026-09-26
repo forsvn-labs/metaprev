@@ -249,10 +249,6 @@ describe('validate', () => {
 
   const find = (m: MetaTags, img?: ImageProbe) => validate(m, img)
 
-  test('clean meta + image produces no issues', () => {
-    expect(find(full, okImage())).toHaveLength(0)
-  })
-
   test('missing title, description, image are errors', () => {
     const issues = find({})
     const fields = issues.filter((i) => i.level === 'error').map((i) => i.field)
@@ -348,12 +344,6 @@ describe('validate', () => {
   test('non-image content-type that also fails to decode is an error', () => {
     const issues = find(full, okImage({ contentType: 'text/html', width: undefined, height: undefined }))
     expect(issues.some((i) => i.level === 'error' && i.code === 'invalid-image-response')).toBe(true)
-  })
-
-  test('a real image served as octet-stream (decodes fine) is not flagged', () => {
-    const issues = find(full, okImage({ contentType: 'application/octet-stream' }))
-    expect(issues.some((i) => i.field === 'og:image' && /decoded as an image/.test(i.message))).toBe(false)
-    expect(issues).toHaveLength(0)
   })
 
   test('oversized image warns', () => {

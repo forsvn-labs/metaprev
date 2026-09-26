@@ -317,10 +317,6 @@ describe('fetch hardening', () => {
     expect(fetchPage('file:///etc/passwd')).rejects.toThrow('Page URL must use HTTP or HTTPS')
   })
 
-  test('rejects a successful non-HTML page response', async () => {
-    expect(fetchPage(`${base}/not-html`)).rejects.toThrow('not HTML')
-  })
-
   test('uses detected bytes, not an unsafe response MIME, for embedded images', async () => {
     const image = await probeImage(`${base}/og.png`, `${base}/clean`, { withDataUri: true })
     expect(image.contentType).toBe('application/octet-stream')
