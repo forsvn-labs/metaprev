@@ -1,11 +1,12 @@
 # metaprev changelog
 
-The canonical versioned release history is [`app/CHANGELOG.md`](app/CHANGELOG.md).
+## 2026-09-19 — 0.6.0
 
-Current release: `0.6.0` on 2026-09-19 from `c030fb3`, tag
-[`v0.6.0`](https://github.com/forsvn-labs/metaprev/releases/tag/v0.6.0). npm
-[`@forsvn/metaprev@0.6.0`](https://www.npmjs.com/package/@forsvn/metaprev/v/0.6.0).
-Details: [`app/CHANGELOG.md`](app/CHANGELOG.md).
+- Recorded release of the local repair workspace, independent report themes,
+  evidence-led metadata validation, and safe rendering/CI contracts.
+- Source tag: [`v0.6.0`](https://github.com/forsvn-labs/metaprev/releases/tag/v0.6.0)
+  at `c030fb3`; recorded package:
+  [`@forsvn/metaprev@0.6.0`](https://www.npmjs.com/package/@forsvn/metaprev/v/0.6.0).
 
-Update the app changelog for releases. Keep this root file as the stable release-history entry
-point.
+[app/CHANGELOG.md](app/CHANGELOG.md) owns the detailed versioned package
+history. [STATUS.md](STATUS.md) distinguishes later source work from releases.

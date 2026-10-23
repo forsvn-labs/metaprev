@@ -1,38 +1,40 @@
 # metaprev structure
 
-This Git root owns the files tracked in [forsvn-labs/metaprev](https://github.com/forsvn-labs/metaprev). The repository is public. Keep private planning and external folder identities in the authorized Drive lookup.
+This public repository is the maintained source for `@forsvn/metaprev`.
+`app/` is a subtree of this repository; npm is a distribution surface.
 
-VISION.md records purpose. ROADMAP.md owns priorities, active work, blockers, and the live handoff. CHANGELOG.md records verified delivery. STRUCTURE.md maps ownership and working commands. BRAIN.md locates external materials.
+## Code architecture
 
-## Architecture and ownership
+The Node shim in [app/bin/metaprev.mjs](app/bin/metaprev.mjs) dispatches to
+the Bun CLI in [app/bin/metaprev.ts](app/bin/metaprev.ts). The CLI fetches
+the page and image, parses metadata, resolves fallbacks, validates facts,
+and emits terminal/JSON results or a local HTML repair workspace.
 
-app/ owns the local CLI, fetch and validation pipeline, repair workspace, package tests, and package changelog. npm is a distribution. This Git root owns the maintained source; older one-way-mirror language describes the previous workspace layout.
+```text
+app/bin/                   CLI entrypoints
+app/src/fetch.ts           Bounded page and image fetching
+app/src/parse.ts           Metadata extraction
+app/src/inputs.ts          Open Graph and X fallback resolution
+app/src/validate.ts        Evidence and stable issue codes
+app/src/repair.ts          Repair snippets and briefs
+app/src/render.ts          Local HTML workspace and platform mocks
+app/test/                  CLI and pipeline regression tests
+app/skills/metaprev/       Bundled coding-agent guidance
+app/CHANGELOG.md           Versioned package history
+brand/                     Build-independent identity context
+ops/                       Product metadata and operations entry
+scripts/publish-mirror.sh  Historical export helper
+```
 
-## Source map
+[README.md](README.md) has source commands; [app/README.md](app/README.md)
+documents the package interface. The old export helper does not make
+another repository authoritative.
 
-| Path | Purpose |
-|---|---|
-| `app/` | Application source |
-| `brand/` | Brand / design-system |
-| `CHANGELOG.md` | What has shipped |
-| `ops/` | Ops scripts and local runtime |
-| `ROADMAP.md` | What will ship |
-| `scripts/` | Tooling |
-| `VISION.md` | Why this exists |
+## External knowledge architecture
 
-## Working commands
-
-- From `app`, run `bun install` before package work. Available commands: `bun run dev`, `bun run test`, `bun run lint`, `bun run typecheck`.
-
-Use [app/README.md](app/README.md) for setup details and project-specific validation. This record migration does not re-run application release or deployment gates.
-
-## Record history
-
-Useful current work moved to ROADMAP.md where this is a product. Location and repository facts moved here. Earlier exact records remain in Git history:
-
-- [PROGRESS.md at 4f4c94b](https://github.com/forsvn-labs/metaprev/blob/4f4c94ba67b102297a9e64082fdc7838dda39334/PROGRESS.md)
-- [INDEX.md at 4f4c94b](https://github.com/forsvn-labs/metaprev/blob/4f4c94ba67b102297a9e64082fdc7838dda39334/INDEX.md)
-
-## External materials and recall
-
-Use BRAIN.md for original media, sendables, and verification evidence. Keep deployable assets needed by a build in Git with their source and license. Mem0 is optional recall through the correct Executor v2 account. Store a scope, project key, source pointer, and truth date; open the current source before using a recalled claim. Do not upload credentials, private identity, medical, finance, or employer-confidential source bodies.
+[BRAIN.md](BRAIN.md) resolves `forsvn/metaprev` to its Google Drive project
+and `OPEN THIS.md` map. Drive holds platform research, original media,
+review evidence, and private planning. The four root records summarize
+purpose, location, structure, and state; they do not mirror those sources.
+Required package assets and code remain in Git. Archived handoffs retain
+their truth dates; [STATUS.md](STATUS.md) owns the current lifecycle.
