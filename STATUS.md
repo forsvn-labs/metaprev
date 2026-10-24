@@ -3,8 +3,9 @@
 Updated 24 October 2026. Baseline `706052b`.
 The new website source merged in [PR #7](https://github.com/forsvn-labs/metaprev/pull/7).
 The owner approved shipping on 24 October. Hosting preparation is in
-[PR #8](https://github.com/forsvn-labs/metaprev/pull/8). Public launch needs
-approval for a new hosting subscription; no package release is part of this work.
+[PR #8](https://github.com/forsvn-labs/metaprev/pull/8). The owner put Metaprev on hold on 24 October, before payment confirmation.
+Do not resume deployment or the hosting upgrade without a new owner instruction.
+No package release is part of this work.
 
 ## Website work
 
@@ -68,16 +69,20 @@ typechecks and the provider deployment dry run pass.
 
 The first production attempt uploaded the Worker and static assets, then the
 Containers API rejected the backend because this account is on Workers Free.
-The provider requires Workers Paid ($5/month plus metered usage). The owner was
-asked to approve that new recurring charge on 24 October. No upgrade was made.
-The prepared backend is limited to one lite instance and sleeps after five idle
-minutes. Public pages do not wake it. The deployment dry run and local Linux
-container checks pass; they do not establish a working public backend.
+The provider requires Workers Paid ($5/month plus metered usage). The owner
+subsequently put Metaprev on hold. Checkout reached the payment step; no payment
+or subscription confirmation was submitted. The hosting upgrade was not completed.
 
-After subscription approval, repeat deployment, verify the canonical hostname,
-HTTPS, inspection, image delivery, and the HTML form, then enable public indexing.
-Indexing stays off until those live checks pass. FORSVN retains its GitHub link
-to Metaprev until the public website works.
+The hosting code is committed and pushed in draft PR #8. The prepared backend
+is limited to one lite instance and sleeps after five idle minutes. Public pages
+do not wake it. The deployment dry run and local Linux container checks pass;
+they do not establish a working public backend. The local test container and
+preview servers are stopped. The clean launch worktree is retained for resumption.
+
+Keep public indexing off, the launch PR in draft, and FORSVN's Metaprev link on
+GitHub while this work is on hold. If the owner resumes, first confirm the hosting
+choice, then deploy and verify HTTPS, inspection, image delivery, and the HTML
+form before enabling indexing or changing the project link.
 
 Advertising needs a publisher account and a separate owner decision after the
 tool is live. Search indexing, field performance, and AI citations need observations
