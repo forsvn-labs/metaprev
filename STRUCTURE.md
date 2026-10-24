@@ -21,6 +21,16 @@ app/src/render.ts          Local HTML workspace and platform mocks
 app/test/                  CLI and pipeline regression tests
 app/skills/metaprev/       Bundled coding-agent guidance
 app/CHANGELOG.md           Versioned package history
+site/server.ts             Public HTTP routes, request limits, and response policy
+site/lib/public-fetch.ts   Public-address DNS checks and pinned, bounded requests
+site/lib/inspect.ts        CLI parser/validator adapter and short-lived image cache
+site/lib/compress.ts       Streaming gzip negotiation for text responses
+site/lib/page.ts           HTML shell, canonical URLs, and structured data
+site/data/guides.ts        Distinct Open Graph guide records
+site/views/                Server-rendered website content
+site/public/               CSS, browser controls, and required runtime artwork
+site/scripts/og.ts         Rebuild the outlined share artwork as a raster image
+site/test/                 Security contract and real HTTP/browser acceptance
 brand/                     Build-independent identity context
 ops/                       Product metadata and operations entry
 scripts/publish-mirror.sh  Historical export helper

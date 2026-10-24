@@ -1,0 +1,23 @@
+{
+  "name": "metaprev-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch server.ts",
+    "start": "bun server.ts",
+    "test": "bun test test/secure.test.ts",
+    "test:http": "bun test/http.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "image-size": "^2.0.2",
+    "ipaddr.js": "^2.2.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "playwright": "^1.63.0",
+    "sharp": "^0.35.4",
+    "typescript": "^5.9.3"
+  }
+}
