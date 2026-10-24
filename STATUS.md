@@ -1,7 +1,8 @@
 # Metaprev status
 
 Updated 24 October 2026. Baseline `706052b`.
-The new public website is in review. No website or package release is deployed.
+The new website is in [draft PR #7](https://github.com/forsvn-labs/metaprev/pull/7).
+No website or package release is deployed.
 
 ## Website work
 
@@ -56,7 +57,7 @@ The existing recorded package release is `0.6.0`, tag `v0.6.0` at `c030fb3`.
 The pre-existing unreleased package changes remain separate from this website.
 No npm publication or later version parity is established by this work.
 
-Source and acceptance checks are ready for a focused draft PR. The
+Source and acceptance checks are ready for review in the draft PR. The
 canonical hostname is a configuration value, not proof of DNS or hosting.
 Indexing stays off by default. Before a public launch, confirm hosting, HTTPS,
 per-client rate limits at the edge, and operational log settings. A multi-process
