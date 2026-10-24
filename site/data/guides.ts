@@ -56,7 +56,7 @@ export const guides: Guide[] = [
       'Inspect twitter:description if X copy differs. Recheck after deployment, then distinguish an outdated platform cache from outdated HTML.',
     ],
     example: '<meta name="description" content="Inspect the tags and image behind a public link.">\n<meta property="og:description" content="Check your share title, image and metadata before posting.">',
-    limitation: 'A present tag does not guarantee visible supporting text in every card. Card layout, available space, platform policy and caching remain outside this inspection. The Open Graph protocol does not define one universal description length.',
+    limitation: 'A tag can be present while a card omits the supporting text. Card layout, available space, platform policy and caching remain outside this inspection. The Open Graph protocol does not define one universal description length.',
     source: { name: 'Open Graph protocol: optional metadata', url: 'https://ogp.me/#optional' },
   },
   {
