@@ -30,6 +30,9 @@ site/data/guides.ts        Distinct Open Graph guide records
 site/views/                Server-rendered website content
 site/public/               CSS, browser controls, and required runtime artwork
 site/scripts/og.ts         Rebuild the outlined share artwork as a raster image
+site/scripts/static.ts     Export only public server routes for edge hosting
+site/edge/                 Typed Cloudflare Worker and bounded inspector container
+Dockerfile                 Bun website runtime, separate from the CLI package
 site/test/                 Security contract and real HTTP/browser acceptance
 brand/                     Build-independent identity context
 ops/                       Product metadata and operations entry

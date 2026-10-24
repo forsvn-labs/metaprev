@@ -63,3 +63,39 @@ counter does not coordinate between instances. Do not trust arbitrary forwarding
 No ad network, analytics, cookies, report database, or browser history is enabled.
 The four data-driven guides answer distinct Open Graph field questions. New guide
 records need a separate task, checked sources, and useful field-specific content.
+
+## Cloudflare deployment
+
+`edge/` serves the public pages and assets directly from Cloudflare. Only
+`/api/inspect`, `/inspect`, and `/api/image` use the private Bun container.
+The static build reads the real server's public routes, so the browser and
+search surfaces use the same content. It never exports inspection results.
+
+The deployment needs Docker, Bun, Node.js 22.18 or later, an authorized
+Cloudflare Workers Paid account with Containers, and the `forsvn.com` zone.
+Workers Paid costs $5/month plus metered usage; obtain owner approval before
+upgrading an account. From `edge/`:
+
+```sh
+bun install
+node node_modules/cf/bin/cf auth login
+bun run typecheck
+bun run build
+bun run deploy
+```
+
+The provider configuration limits the inspector to one `lite` container. It
+sleeps after five idle minutes. The Worker replaces the client-address header
+before private ingress; `METAPREV_PRIVATE_EDGE=on` trusts that header only in
+this private deployment. Standalone servers must leave that setting off.
+`bun test/deployment.ts`, run from `site/`, verifies both address policies.
+
+The first deployment keeps indexing off until the domain, HTTPS, form, metadata,
+and image responses are checked. Cloudflare operational logs and traces sample
+one percent of Worker requests and remove URL query strings. The application
+does not log submitted URL bodies or store reports. A container rollout can
+expire existing image IDs; inspect again to refresh them.
+
+The root Dockerfile contains only the website runtime and shared parser source.
+Local credentials, tests, build tools, and review captures are excluded. The
+published CLI package remains separate from this hosting configuration.
