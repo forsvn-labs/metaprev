@@ -2,8 +2,9 @@
 
 Updated 24 October 2026. Baseline `706052b`.
 The new website source merged in [PR #7](https://github.com/forsvn-labs/metaprev/pull/7).
-The owner approved shipping on 24 October. Public deployment is in progress;
-no package release is part of this work.
+The owner approved shipping on 24 October. Hosting preparation is in
+[PR #8](https://github.com/forsvn-labs/metaprev/pull/8). Public launch needs
+approval for a new hosting subscription; no package release is part of this work.
 
 ## Website work
 
@@ -65,8 +66,18 @@ check verifies per-client limits and rejection of spoofed proxy headers on
 standalone servers. The container passes all 42 HTTP checks. Site and edge
 typechecks and the provider deployment dry run pass.
 
-The canonical hostname still needs live verification. Indexing stays off for
-the initial deployment until HTTPS, inspection, images, and public routes pass.
+The first production attempt uploaded the Worker and static assets, then the
+Containers API rejected the backend because this account is on Workers Free.
+The provider requires Workers Paid ($5/month plus metered usage). The owner was
+asked to approve that new recurring charge on 24 October. No upgrade was made.
+The prepared backend is limited to one lite instance and sleeps after five idle
+minutes. Public pages do not wake it. The deployment dry run and local Linux
+container checks pass; they do not establish a working public backend.
+
+After subscription approval, repeat deployment, verify the canonical hostname,
+HTTPS, inspection, image delivery, and the HTML form, then enable public indexing.
+Indexing stays off until those live checks pass. FORSVN retains its GitHub link
+to Metaprev until the public website works.
 
 Advertising needs a publisher account and a separate owner decision after the
 tool is live. Search indexing, field performance, and AI citations need observations

@@ -72,7 +72,9 @@ The static build reads the real server's public routes, so the browser and
 search surfaces use the same content. It never exports inspection results.
 
 The deployment needs Docker, Bun, Node.js 22.18 or later, an authorized
-Cloudflare account with Containers, and the `forsvn.com` zone. From `edge/`:
+Cloudflare Workers Paid account with Containers, and the `forsvn.com` zone.
+Workers Paid costs $5/month plus metered usage; obtain owner approval before
+upgrading an account. From `edge/`:
 
 ```sh
 bun install
