@@ -1,8 +1,9 @@
 # Metaprev status
 
 Updated 24 October 2026. Baseline `706052b`.
-The new website is in [draft PR #7](https://github.com/forsvn-labs/metaprev/pull/7).
-No website or package release is deployed.
+The new website source merged in [PR #7](https://github.com/forsvn-labs/metaprev/pull/7).
+The owner approved shipping on 24 October. Public deployment is in progress;
+no package release is part of this work.
 
 ## Website work
 
@@ -57,11 +58,15 @@ The existing recorded package release is `0.6.0`, tag `v0.6.0` at `c030fb3`.
 The pre-existing unreleased package changes remain separate from this website.
 No npm publication or later version parity is established by this work.
 
-Source and acceptance checks are ready for review in the draft PR. The
-canonical hostname is a configuration value, not proof of DNS or hosting.
-Indexing stays off by default. Before a public launch, confirm hosting, HTTPS,
-per-client rate limits at the edge, and operational log settings. A multi-process
-host does not share the process-local request counters or image cache.
+The Cloudflare deployment serves public pages as edge assets and routes the
+inspection API and private images to one bounded Bun container. The container
+keeps the verified DNS and connection policy. A new seven-case integration
+check verifies per-client limits and rejection of spoofed proxy headers on
+standalone servers. The container passes all 42 HTTP checks. Site and edge
+typechecks and the provider deployment dry run pass.
+
+The canonical hostname still needs live verification. Indexing stays off for
+the initial deployment until HTTPS, inspection, images, and public routes pass.
 
 Advertising needs a publisher account and a separate owner decision after the
 tool is live. Search indexing, field performance, and AI citations need observations

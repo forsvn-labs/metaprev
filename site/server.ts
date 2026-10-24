@@ -93,7 +93,10 @@ async function handleRequest(request: Request, server: Bun.Server<undefined>): P
     if ((origin && origin !== url.origin && origin !== siteUrl) || request.headers.get('sec-fetch-site') === 'cross-site') {
       return fail('Open Metaprev to inspect a URL.', 403)
     }
-    const key = server.requestIP(request)?.address ?? 'unknown'
+    // This header is replaced by our Worker before private container ingress.
+    // Direct local/standalone deployments always use the connecting address.
+    const key = (process.env.METAPREV_PRIVATE_EDGE === 'on' ? request.headers.get('x-metaprev-client-ip') : null)
+      ?? server.requestIP(request)?.address ?? 'unknown'
     if (active >= 4 || !consume(key)) return fail('Please wait a minute before checking another URL.', 429)
     active++
     let source = ''
