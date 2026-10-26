@@ -1,3 +1,4 @@
+import { readBoundedBody } from './transfer.ts'
 // Hosted fetching has a stricter boundary than the local CLI: public Internet
 // only, checked DNS pinned to the connection, bounded bytes and total deadline.
 import { lookup } from 'node:dns/promises'
@@ -85,7 +86,7 @@ export async function fetchPublic(input: string, { kind, signal }: { kind: Fetch
           headers: {
             'User-Agent': 'metaprev/0.1 (+https://github.com/forsvn-labs/metaprev)',
             Accept: kind === 'html' ? 'text/html,application/xhtml+xml;q=0.9' : 'image/png,image/jpeg,image/webp,image/gif',
-            'Accept-Encoding': 'identity',
+            'Accept-Encoding': 'gzip, br, deflate',
           },
         }, response => {
           const status = response.statusCode ?? 502
@@ -102,49 +103,16 @@ export async function fetchPublic(input: string, { kind, signal }: { kind: Fetch
             return
           }
           const contentType = (response.headers['content-type'] ?? '').split(';')[0]?.trim().toLowerCase() ?? ''
-          const encoding = response.headers['content-encoding']
-          if (encoding && encoding !== 'identity') {
-            response.destroy()
-            reject(new InspectionError('The target ignored the uncompressed-response request. Use the local CLI for this page.'))
-            return
-          }
           if ((kind === 'html' && !['text/html', 'application/xhtml+xml'].includes(contentType)) ||
               (kind === 'image' && !['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(contentType))) {
             response.destroy()
             reject(new InspectionError(kind === 'html' ? 'The URL did not return an HTML page.' : 'The image must be PNG, JPEG, WebP or GIF.'))
             return
           }
-          const maxBytes = kind === 'html' ? 512 * 1024 : 5 * 1024 * 1024
-          const chunks: Buffer[] = []
-          let size = 0
-          let headTail = ''
-          let settled = false
-          const finish = () => {
-            if (settled) return
-            settled = true
-            resolve({ url: target.href, status, headers: response.headers, body: Buffer.concat(chunks), contentType })
-          }
-          response.on('data', (chunk: Buffer) => {
-            size += chunk.length
-            if (size > maxBytes) {
-              settled = true
-              response.destroy()
-              reject(new InspectionError(kind === 'html' ? 'The HTML head exceeds the 512 KB inspection limit.' : 'The image exceeds the 5 MB web inspection limit.'))
-              return
-            }
-            chunks.push(chunk)
-            // Stop at the end of head. No scripts run and no page body is needed.
-            if (kind === 'html') {
-              const text = headTail + chunk.toString('latin1')
-              headTail = text.slice(-32)
-              if (/<\/head\s*>/i.test(text)) {
-                finish()
-                response.destroy()
-              }
-            }
-          })
-          response.on('end', finish)
-          response.on('error', error => { if (!settled) reject(error) })
+          void readBoundedBody(response, response.headers['content-encoding'] ?? '', kind)
+            .then(body => resolve({ url: target.href, status, headers: response.headers, body, contentType }),
+              error => reject(new InspectionError(error instanceof Error ? error.message : 'The response could not be decoded.')))
+
         })
         request.on('error', reject)
         request.end()

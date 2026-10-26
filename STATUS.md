@@ -66,3 +66,15 @@ host does not share the process-local request counters or image cache.
 Advertising needs a publisher account and a separate owner decision after the
 tool is live. Search indexing, field performance, and AI citations need observations
 after an authorized public deployment. No such outcome is established here.
+
+
+## 26 October 2026 — inspection quality branch (not deployed)
+
+The isolated `codex/metaprev-quality-20261026` branch preserves the existing
+ads/consent and messaging branches and adds bounded upstream compression,
+structured image/video parsing and evidence checks, a source-backed video guide,
+private-report SEO isolation and optional aggregate-only public-page analytics.
+Ads, indexing and analytics remain off by default. No account or hosting is
+activated. See [quality review](site/QUALITY-REVIEW.md) for repeatable verification,
+measured fixture results, limits and exact launch decisions. Integration PR writes
+remain blocked by the previously observed 403 and were not retried.

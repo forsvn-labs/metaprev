@@ -13,7 +13,8 @@ and emits terminal/JSON results or a local HTML repair workspace.
 ```text
 app/bin/                   CLI entrypoints
 app/src/fetch.ts           Bounded page and image fetching
-app/src/parse.ts           Metadata extraction
+app/src/parse.ts           Structured image/video metadata extraction
+app/src/head.ts            Bounded streaming head scanner and inert-markup tokenizer
 app/src/inputs.ts          Open Graph and X fallback resolution
 app/src/validate.ts        Evidence and stable issue codes
 app/src/repair.ts          Repair snippets and briefs
@@ -23,6 +24,8 @@ app/skills/metaprev/       Bundled coding-agent guidance
 app/CHANGELOG.md           Versioned package history
 site/server.ts             Public HTTP routes, request limits, and response policy
 site/lib/public-fetch.ts   Public-address DNS checks and pinned, bounded requests
+site/lib/transfer.ts       Bounded streaming decompression and head termination
+site/lib/analytics.ts      Optional fixed-route aggregate counts without visitor IDs
 site/lib/inspect.ts        CLI parser/validator adapter and short-lived image cache
 site/lib/compress.ts       Streaming gzip negotiation for text responses
 site/lib/page.ts           HTML shell, canonical URLs, and structured data

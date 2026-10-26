@@ -83,3 +83,13 @@ Run the offline browser acceptance check with `bun test/messaging-browser.ts`
 from `site/`. It starts a loopback fixture server and uses installed Chrome.
 Outputs default to `/tmp/metaprev-messaging-evidence`; set `OUT` to change it.
 The fixtures prove Metaprev behavior, not live-client fidelity.
+
+
+## Inspection quality and optional operational counts
+
+See [QUALITY-REVIEW.md](QUALITY-REVIEW.md) for the compressed-transfer benchmark,
+metadata/video coverage, source review and remaining activation decisions.
+`ANALYTICS_ENABLED=on` plus `ANALYTICS_OWNER_APPROVED=on` enables hourly public-page
+aggregate counts in host logs. Both default off; no external collector, cookies,
+query strings, inspection routes or visitor identifiers are recorded. Review host
+log retention before enabling. These totals are not unique visitors or field CWV.

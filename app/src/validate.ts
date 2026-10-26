@@ -116,6 +116,13 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
       fix: `Serve the asset with Content-Type: ${detectedType}.`,
     }))
 
+    if (meta.ogImageType && detectedType && meta.ogImageType.toLowerCase().trim() !== detectedType) issues.push(finding({
+      level: 'warn', code: 'declared-image-type-mismatch', field: 'og:image:type', message: 'The declared image MIME type does not match the downloaded asset.',
+      impact: 'Consumers receive conflicting metadata about the selected image.',
+      evidence: `og:image:type declares ${meta.ogImageType}, while the downloaded bytes decode as ${detectedType}.`,
+      fix: `Set og:image:type to ${detectedType} for this asset. Open Graph defines the property at ${OPEN_GRAPH_DOCS}#structured.`,
+    }))
+
     if (image.width && image.height) {
       const ratio = image.width / image.height
       if (Math.abs(ratio - TARGET.ratio) / TARGET.ratio > RATIO_TOLERANCE) issues.push(finding({
@@ -154,18 +161,18 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     fix: 'Add og:image:width and og:image:height using the decoded asset dimensions.',
   }))
 
-  if (image?.ok && image.width && image.height && meta.ogImageWidth && meta.ogImageHeight) {
-    const validWidth = /^\d+$/.test(meta.ogImageWidth)
-    const validHeight = /^\d+$/.test(meta.ogImageHeight)
+  if (meta.ogImageWidth !== undefined || meta.ogImageHeight !== undefined) {
+    const validWidth = meta.ogImageWidth === undefined || /^\d+$/.test(meta.ogImageWidth)
+    const validHeight = meta.ogImageHeight === undefined || /^\d+$/.test(meta.ogImageHeight)
     const declaredWidth = Number(meta.ogImageWidth)
     const declaredHeight = Number(meta.ogImageHeight)
     if (!validWidth || !validHeight || declaredWidth <= 0 || declaredHeight <= 0) issues.push(finding({
       level: 'warn', code: 'invalid-image-dimensions', field: 'og:image', message: 'Declared image dimensions are not positive integers.',
       impact: 'Crawlers may ignore the dimensions and choose a fallback layout.',
       evidence: 'At least one of og:image:width or og:image:height is not a positive whole number.',
-      fix: `Set og:image:width to ${image.width} and og:image:height to ${image.height}.`,
+      fix: image?.width && image.height ? `Set og:image:width to ${image.width} and og:image:height to ${image.height}.` : 'Set both dimensions to the positive integer pixel dimensions of the actual asset.',
     }))
-    else if (declaredWidth !== image.width || declaredHeight !== image.height) issues.push(finding({
+    else if (meta.ogImageWidth && meta.ogImageHeight && image?.ok && image.width && image.height && (declaredWidth !== image.width || declaredHeight !== image.height)) issues.push(finding({
       level: 'warn', code: 'image-dimension-mismatch', field: 'og:image', message: 'Declared image dimensions do not match the fetched asset.',
       impact: 'A crawler can reserve the wrong frame before the image loads, causing a layout or crop mismatch.',
       evidence: `Metadata declares og:image:width and og:image:height as ${declaredWidth}×${declaredHeight}px; the decoded asset is ${image.width}×${image.height}px. Facebook's first-party webmaster page at ${FACEBOOK_WEBMASTER_DOCS} returned HTTP 429 during this review, so its prior first-share dimension recommendation remains unconfirmed.`,
@@ -220,6 +227,41 @@ export function validate(meta: MetaTags, image: ImageProbe | undefined): Issue[]
     evidence: 'The fetched HTML has no og:type; the Open Graph protocol lists it as required metadata.',
     fix: 'Add og:type="website" for a general page, or the correct specific type such as "article".',
   }))
+
+  if (meta.ogVideo) {
+    const video = meta.ogVideoSecureUrl ?? meta.ogVideo
+    if (!isAbsoluteHttpUrl(video)) issues.push(finding({
+      level: 'error', code: 'invalid-video-url', field: 'og:video', message: 'The video URL is not absolute HTTP(S).',
+      impact: 'Consumers cannot reliably resolve the declared video resource.',
+      evidence: 'The selected og:video or og:video:secure_url is not an absolute HTTP(S) URL.',
+      fix: 'Use the absolute public URL of the intended video resource; do not invent a player URL.',
+    }))
+    else if (video.startsWith('http:')) issues.push(finding({
+      level: 'warn', code: 'insecure-video', field: 'og:video:secure_url', message: 'The declared video has no HTTPS URL.',
+      impact: 'An HTTPS consumer may refuse insecure embedded media.',
+      evidence: 'The video URL uses HTTP and no HTTPS alternate is declared. This is a transport risk, not a platform playback test.',
+      fix: 'Serve the video over HTTPS and declare og:video:secure_url for the same resource.',
+    }))
+    const dimensions = [meta.ogVideoWidth, meta.ogVideoHeight]
+    if (dimensions.some(value => value !== undefined && (!/^\d+$/.test(value) || Number(value) <= 0))) issues.push(finding({
+      level: 'warn', code: 'invalid-video-dimensions', field: 'og:video', message: 'Declared video dimensions are invalid.',
+      impact: 'The declared frame cannot be interpreted as positive pixel dimensions.',
+      evidence: 'At least one selected og:video:width or og:video:height is not a positive integer.',
+      fix: 'Use the actual video width and height in pixels. Changing metadata does not resize or verify the video.',
+    }))
+    if (!meta.ogVideoType || !meta.ogVideoWidth || !meta.ogVideoHeight) issues.push(finding({
+      level: 'info', code: 'incomplete-video-metadata', field: 'og:video', message: 'The video structured properties are incomplete.',
+      impact: 'Consumers receive less information about the declared resource and frame.',
+      evidence: `Open Graph documents video MIME type, width and height as structured properties at ${OPEN_GRAPH_DOCS}#structured (checked 26 October 2026). They are not universal playback guarantees.`,
+      fix: 'Declare the actual og:video:type, og:video:width and og:video:height after the selected video root tag.',
+    }))
+    issues.push(finding({
+      level: 'info', code: 'video-unverified', field: 'og:video', message: 'Video metadata was read; playback was not tested.',
+      impact: 'A valid tag does not prove that a service will embed, fetch or play the video.',
+      evidence: 'Metaprev does not fetch video bytes, inspect codecs, execute players or test platform embedding policies.',
+      fix: 'Verify the resource response, MIME type, codecs and platform-specific player requirements separately. Keep a useful og:image poster fallback.',
+    }))
+  }
 
   const rank = { error: 0, warn: 1, info: 2 } as const
   return issues.sort((a, b) => rank[a.level] - rank[b.level])

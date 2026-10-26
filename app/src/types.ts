@@ -7,6 +7,13 @@ export type MetaTags = {
   ogTitle?: string
   ogDescription?: string
   ogUrl?: string
+  ogImageSecureUrl?: string
+  ogImageType?: string
+  ogVideo?: string
+  ogVideoSecureUrl?: string
+  ogVideoType?: string
+  ogVideoWidth?: string
+  ogVideoHeight?: string
   ogImage?: string
   ogImageAlt?: string
   ogImageWidth?: string

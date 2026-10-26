@@ -1,8 +1,9 @@
+import { metadataHead } from './head.ts'
 import type { MetaTags } from './types.ts'
 
-const META_RE = /<meta\s+([^>]+?)\/?>/gi
+const META_RE = /<meta\s+((?:[^>"\']|"[^"]*"|\'[^\']*\')+)\/?>/gi
 const TITLE_RE = /<title[^>]*>([\s\S]*?)<\/title>/i
-const LINK_RE = /<link\s+([^>]+?)\/?>/gi
+const LINK_RE = /<link\s+((?:[^>"\']|"[^"]*"|\'[^\']*\')+)\/?>/gi
 
 const ATTR_RE = /(\w[\w:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g
 
@@ -67,12 +68,13 @@ function decodeEntities(s: string): string {
 }
 
 export function parseMeta(html: string): MetaTags {
-  const head = extractHead(html)
+  const head = metadataHead(html)
   const tags: MetaTags = {}
   // Open Graph arrays attach structured properties to the root image they follow.
   // metaprev previews the first image, so later images' dimensions/alt must never
   // overwrite the selected image's evidence.
   let selectedOgImageIsActive = false
+  let selectedVideo = false
   let pendingStructured: Record<string, string> = {}
 
   const titleMatch = TITLE_RE.exec(head)
@@ -103,11 +105,20 @@ export function parseMeta(html: string): MetaTags {
       selectImage(content)
       continue
     }
-    if (key === 'og:image:url' || key === 'og:image:secure_url') {
+    if (key === 'og:image:url') {
       selectImage(content)
       continue
     }
-    if (key === 'og:image:width' || key === 'og:image:height' || key === 'og:image:alt') {
+    if (key === 'og:video' || key === 'og:video:url') {
+      selectedVideo = tags.ogVideo === undefined
+      tags.ogVideo ??= content
+      continue
+    }
+    if (key.startsWith('og:video:')) {
+      if (selectedVideo) assign(tags, key, content)
+      continue
+    }
+    if (key === 'og:image:secure_url' || key === 'og:image:type' || key === 'og:image:width' || key === 'og:image:height' || key === 'og:image:alt') {
       if (selectedOgImageIsActive) assign(tags, key, content)
       else if (!tags.ogImage) pendingStructured[key] ??= content
       continue
@@ -127,58 +138,59 @@ export function parseMeta(html: string): MetaTags {
   return tags
 }
 
-function extractHead(html: string): string {
-  const match = /<head[^>]*>([\s\S]*?)<\/head>/i.exec(html)
-  return match?.[1] ?? html
-}
-
 function assign(tags: MetaTags, key: string, value: string): void {
   switch (key) {
+    case 'og:image:secure_url': tags.ogImageSecureUrl ??= value; break
+    case 'og:image:type': tags.ogImageType ??= value; break
+    case 'og:video:secure_url': tags.ogVideoSecureUrl ??= value; break
+    case 'og:video:type': tags.ogVideoType ??= value; break
+    case 'og:video:width': tags.ogVideoWidth ??= value; break
+    case 'og:video:height': tags.ogVideoHeight ??= value; break
     case 'description':
       tags.description ??= value
       break
     case 'og:site_name':
-      tags.ogSiteName = value
+      tags.ogSiteName ??= value
       break
     case 'og:type':
-      tags.ogType = value
+      tags.ogType ??= value
       break
     case 'og:title':
-      tags.ogTitle = value
+      tags.ogTitle ??= value
       break
     case 'og:description':
-      tags.ogDescription = value
+      tags.ogDescription ??= value
       break
     case 'og:url':
-      tags.ogUrl = value
+      tags.ogUrl ??= value
       break
     case 'og:image:width':
-      tags.ogImageWidth = value
+      tags.ogImageWidth ??= value
       break
     case 'og:image:height':
-      tags.ogImageHeight = value
+      tags.ogImageHeight ??= value
       break
     case 'og:image:alt':
-      tags.ogImageAlt = value
+      tags.ogImageAlt ??= value
       break
     case 'twitter:card':
-      tags.twitterCard = value
+      tags.twitterCard ??= value
       break
     case 'twitter:site':
-      tags.twitterSite = value
+      tags.twitterSite ??= value
       break
     case 'twitter:title':
-      tags.twitterTitle = value
+      tags.twitterTitle ??= value
       break
     case 'twitter:description':
-      tags.twitterDescription = value
+      tags.twitterDescription ??= value
       break
     case 'twitter:image':
     case 'twitter:image:src':
       tags.twitterImage ??= value
       break
     case 'twitter:image:alt':
-      tags.twitterImageAlt = value
+      tags.twitterImageAlt ??= value
       break
   }
 }

@@ -1,6 +1,7 @@
 // One record per distinct reader task. These records drive the HTML, Markdown,
 // schema, sitemap and links; keyword variants never generate extra pages.
 export type Guide = {
+  reviewed?: string
   slug: string
   field: string
   title: string
@@ -74,4 +75,21 @@ export const guides: Guide[] = [
     limitation: 'Metaprev reports observed metadata and redirects. It does not choose your canonical policy, change a search engine’s selected canonical, or prove that social services merge identities in the same way.',
     source: { name: 'Open Graph protocol: basic metadata', url: 'https://ogp.me/#metadata' },
   },
+  {
+    slug: 'og-video', field: 'og:video', reviewed: '2026-10-26',
+    title: 'Check Open Graph video metadata and poster fallbacks',
+    description: 'Inspect video URLs, HTTPS alternatives, MIME type and declared dimensions. Separate Open Graph metadata from verified playback and platform player rules.',
+    answer: 'og:video declares a video resource associated with the page. The Open Graph protocol defines structured properties for its URL, secure URL, MIME type, width and height. These declarations do not prove that a platform can play or embed the resource.',
+    intent: 'Find incomplete video declarations and distinguish a poster preview from tested playback.',
+    checks: [
+      'Declare the first intended og:video resource before its structured properties. Later video roots begin separate groups; the first has preference when values conflict.',
+      'Use an absolute public URL and an HTTPS resource. A secure_url is an alternate for the selected resource, not a separate video.',
+      'Set og:video:type to the actual response MIME type and use the real positive pixel dimensions. Do not copy an example’s dimensions without checking the file.',
+      'Keep a useful og:image poster and descriptive og:image:alt for consumers that show a static card. Check codecs, player requirements and embedding permissions with the destination platform.',
+    ],
+    example: '<meta property="og:video" content="https://example.com/demo.mp4">\n<meta property="og:video:type" content="video/mp4">\n<meta property="og:video:width" content="1280">\n<meta property="og:video:height" content="720">\n<meta property="og:image" content="https://example.com/demo-poster.png">\n<meta property="og:image:alt" content="The demo dashboard with a completed inspection">',
+    limitation: 'Metaprev reads declarations but does not fetch video bytes, inspect codecs, run players or verify platform playback. A representative image card is a poster simulation. Open Graph metadata does not replace a service’s player policy or clear its cache.',
+    source: { name: 'Open Graph protocol: structured properties and arrays', url: 'https://ogp.me/#structured' },
+  },
+
 ]

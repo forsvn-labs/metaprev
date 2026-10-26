@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "bun --watch server.ts",
     "start": "bun server.ts",
-    "test": "bun test test/secure.test.ts test/ads.test.ts",
+    "test": "bun test test/secure.test.ts test/ads.test.ts test/transfer.test.ts test/analytics.test.ts test/seo-quality.test.ts",
     "test:ads-browser": "bun test/ads-browser.ts",
     "preflight:ads": "bun scripts/ads-preflight.ts",
     "test:http": "bun test/http.ts",
