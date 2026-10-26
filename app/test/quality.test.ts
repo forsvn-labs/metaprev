@@ -39,3 +39,11 @@ test('checks each declared dimension and image MIME without inventing fetch evid
   expect(issues.some(i => i.code === 'invalid-image-dimensions')).toBe(true)
   expect(issues.some(i => i.code === 'declared-image-type-mismatch')).toBe(true)
 })
+test('video checks label declarations and do not confuse secure alternates with root validity', () => {
+  const issues = validate({ ogVideo: '/video.mp4', ogVideoSecureUrl: 'http://example.com/video.mp4', ogVideoType: 'not a mime', ogVideoWidth: '999999999999999999999', ogVideoHeight: '1' }, undefined)
+  expect(issues.some(i => i.code === 'invalid-video-url')).toBe(true)
+  expect(issues.some(i => i.code === 'invalid-video-secure-url')).toBe(true)
+  expect(issues.some(i => i.code === 'invalid-video-type')).toBe(true)
+  expect(issues.some(i => i.code === 'invalid-video-dimensions')).toBe(true)
+  expect(issues.filter(i => i.field.startsWith('og:video')).every(i => i.basis === 'declaration' || i.basis === 'coverage')).toBe(true)
+})
