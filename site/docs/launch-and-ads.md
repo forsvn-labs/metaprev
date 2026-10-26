@@ -24,7 +24,8 @@ Ads are off by default. One manual AdSense slot is eligible only on the four
 existing individual public guides. The homepage inspector, forms, reports,
 errors, private images, APIs, CLI output and privacy page have no ad scripts.
 Ad blocking never gates access. Query and fragment URLs do not load the CMP or
-ad network; the loader rechecks location when consent changes.
+ad network; the loader rechecks location when consent changes. GPC and Do Not
+Track signals also prevent CMP and ad requests before any consent callback.
 
 `bun run preflight:ads` prints every missing configuration gate and exits 1
 while ads are disabled. The flags in `.env.example` are owner attestations;

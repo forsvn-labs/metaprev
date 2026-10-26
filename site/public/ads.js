@@ -5,7 +5,7 @@
   const initialPath = location.pathname
   const safeLocation = () => slot && location.protocol === 'https:' && location.origin === slot.dataset.origin &&
     !location.search && !location.hash && location.pathname === initialPath && /^\/guides\/[a-z-]+$/.test(location.pathname)
-  if (!safeLocation()) return
+  if (!safeLocation() || navigator.globalPrivacyControl === true || navigator.doNotTrack === '1') return
   const container = slot.querySelector('[data-ad-container]')
   const purposes = [1, 2, 3, 4, 7, 9, 10]
   let started = false

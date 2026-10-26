@@ -100,6 +100,23 @@ try {
       await page.evaluate(({ data, suffix }) => { history.replaceState(null, '', suffix); window.__testConsent(data, true) }, { data: consent, suffix })
       check(`${width}: location mutation ${suffix} while waiting keeps ads off`, requests === before)
     }
+    for (const [name, value] of [['globalPrivacyControl', true], ['doNotTrack', '1']] as const) {
+      const protectedPage = await context.newPage()
+      await protectedPage.addInitScript(({ name, value }) => {
+        Object.defineProperty(navigator, name, { configurable: true, value })
+      }, { name, value })
+      const beforeAds = requests
+      const beforeCmp = adapterRequests
+      await protectedPage.goto(origin + '/guides/og-image', { waitUntil: 'networkidle' })
+      if (await protectedPage.evaluate(() => typeof window.__testConsent === 'function')) {
+        const attemptedSdk = protectedPage.waitForRequest(request => new URL(request.url()).origin !== origin, { timeout: 1_000 }).catch(() => null)
+        await protectedPage.evaluate(data => window.__testConsent(data, true), consent)
+        await attemptedSdk
+      }
+      check(`${width}: ${name} prevents CMP requests`, adapterRequests === beforeCmp)
+      check(`${width}: ${name} prevents ads despite a positive consent callback`, requests === beforeAds)
+      await protectedPage.close()
+    }
     await page.goto(origin + '/guides/og-image')
     await page.waitForFunction(() => typeof window.__testConsent === 'function')
     await page.clock.install()
