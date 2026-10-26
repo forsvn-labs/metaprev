@@ -71,3 +71,15 @@ counter does not coordinate between instances. Do not trust arbitrary forwarding
 Advertising stays disabled by default. No analytics, report database, or browser history is enabled.
 The four data-driven guides answer distinct Open Graph field questions. New guide
 records need a separate task, checked sources, and useful field-specific content.
+
+## Messaging previews
+
+Inspection results include six distinct messaging contexts from the shared CLI
+adapter. Five use illustrative Open Graph layouts; X Chat remains explicitly
+unverified. No messaging integration is connected. Native disclosure controls
+work without JavaScript. See the [contract and sources](../app/docs/messaging-surfaces.md).
+
+Run the offline browser acceptance check with `bun test/messaging-browser.ts`
+from `site/`. It starts a loopback fixture server and uses installed Chrome.
+Outputs default to `/tmp/metaprev-messaging-evidence`; set `OUT` to change it.
+The fixtures prove Metaprev behavior, not live-client fidelity.

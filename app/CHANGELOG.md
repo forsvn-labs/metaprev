@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+- Source-labeled Messenger, iMessage, Telegram, WhatsApp and Slack simulations with an explicitly unverified X Chat state. The CLI and website share adapters and rendering without messaging credentials or API calls.
+- Native compact/unavailable-preview comparisons, supplied image descriptions, surface sources and integration limits. Offline browser acceptance covers responsive layout, no-JavaScript controls and independent card appearance.
+
 ### Changed
 - `fetchPage` stops at the first `</head>` instead of draining up to 4 MB, and still uses that ceiling when the document has no head closer.
 - `probeImage` on facts/issues is a cancellable GET: it stops once dimensions decode, keeps `Content-Length` as `byteLength`, and only downloads the full body when the preview needs a data URI.
