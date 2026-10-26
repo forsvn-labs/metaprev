@@ -18,10 +18,11 @@ function safeImage(value: string | undefined): string | undefined {
 }
 function mock(preview: MessagingPreview, domain: string, image: string | undefined, compact = false, backgroundImage = false): string {
   if (preview.surface.status === 'unverified') return ''
+  const alt = escape(preview.imageAlt || `Share image for ${domain}`)
   const media = image && backgroundImage
-    ? `<div class="messaging-card__image raster-og" role="img" aria-label="Share image for ${escape(domain)}"></div>`
+    ? `<div class="messaging-card__image raster-og" role="img" aria-label="${alt}"></div>`
     : image
-    ? `<img class="messaging-card__image" src="${escape(image)}" alt="Share image for ${escape(domain)}" loading="lazy" decoding="async" data-preview-img>`
+    ? `<img class="messaging-card__image" src="${escape(image)}" alt="${alt}" loading="lazy" decoding="async" data-preview-img>`
     : '<div class="messaging-card__image messaging-card__empty">Image not available</div>'
   const text = `<div class="messaging-card__text"><span class="messaging-card__domain">${escape(domain)}</span>
     <b class="messaging-card__title" dir="auto">${escape(preview.title.value || '(no title)')}</b>
@@ -84,7 +85,7 @@ export const messagingStyles = `
 .messaging-card--compact { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: start; }
 .messaging-card--compact .messaging-card__image { aspect-ratio: 1; height: 80px; }
 .messaging-surface details .messaging-card { margin-top: 10px; }
-[data-chrome='dark'] .messaging-card, [data-card-appearance='dark'] .messaging-card { background: #242e3a; color: #f0f4f8; border-color: #627080; }
-[data-chrome='dark'] .messaging-card__domain, [data-card-appearance='dark'] .messaging-card__domain { color: #c2d1e1; }
+[data-appearance='dark'] .messaging-card, [data-card-appearance='dark'] .messaging-card { background: #242e3a; color: #f0f4f8; border-color: #627080; }
+[data-appearance='dark'] .messaging-card__domain, [data-card-appearance='dark'] .messaging-card__domain { color: #c2d1e1; }
 @media (max-width: 700px) { .messaging__grid { grid-template-columns: minmax(0, 1fr); } .messaging-surface { padding: 14px; } }
 `

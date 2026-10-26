@@ -42,6 +42,7 @@ try {
       await tab.goto(base + route, { waitUntil: 'networkidle' })
       const prefix = `${width} ${route}`
       check(`${prefix}: six messaging contexts`, await tab.locator('[data-messaging-surface]').count() === 6)
+      check(`${prefix}: supplied image description preserved`, await tab.locator('.messaging').getByRole('img', { name: 'Share artwork with three colored bars', exact: true }).count() === 5)
       check(`${prefix}: no horizontal overflow`, await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
       check(`${prefix}: ordinary iMessage omits description`, await tab.locator('[data-messaging-surface=imessage] .messaging-card__description').count() === 0)
       check(`${prefix}: X Chat has no inferred card`, await tab.locator('[data-messaging-surface="x-chat"] .messaging-card').count() === 0)
@@ -61,6 +62,13 @@ try {
         check(`${prefix}: feed keyboard navigation`, await tab.getByRole('tab').last().getAttribute('aria-selected') === 'true')
         await tab.getByRole('button', { name: 'Dark', exact: true }).click()
         check(`${prefix}: messaging inherits dark appearance`, await tab.locator('.messaging-card').first().evaluate(el => getComputedStyle(el).backgroundColor) === 'rgb(36, 46, 58)')
+      }
+      if (route === '/cli') {
+        await tab.locator('[data-chrome-set=dark]').click()
+        await tab.locator('[data-appearance-set=light]').click()
+        check(`${prefix}: light card appearance independent of chrome`, await tab.locator('.messaging-card').first().evaluate(el => getComputedStyle(el).backgroundColor) === 'rgb(243, 244, 246)')
+        await tab.locator('[data-appearance-set=dark]').click()
+        check(`${prefix}: dark card appearance applies`, await tab.locator('.messaging-card').first().evaluate(el => getComputedStyle(el).backgroundColor) === 'rgb(36, 46, 58)')
       }
       if ([390, 1440].includes(width)) await tab.locator('.messaging').screenshot({ path: `${out}/${route === '/' ? 'web' : 'cli'}-${width}.png` })
     }

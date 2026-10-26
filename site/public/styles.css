@@ -1318,6 +1318,6 @@ a:hover { text-decoration-color: var(--mark); }
 .messaging-card--compact { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: start; }
 .messaging-card--compact .messaging-card__image { aspect-ratio: 1; height: 80px; }
 .messaging-surface details .messaging-card { margin-top: 10px; }
-[data-chrome='dark'] .messaging-card, [data-card-appearance='dark'] .messaging-card { background: #242e3a; color: #f0f4f8; border-color: #627080; }
-[data-chrome='dark'] .messaging-card__domain, [data-card-appearance='dark'] .messaging-card__domain { color: #c2d1e1; }
+[data-appearance='dark'] .messaging-card, [data-card-appearance='dark'] .messaging-card { background: #242e3a; color: #f0f4f8; border-color: #627080; }
+[data-appearance='dark'] .messaging-card__domain, [data-card-appearance='dark'] .messaging-card__domain { color: #c2d1e1; }
 @media (max-width: 700px) { .messaging__grid { grid-template-columns: minmax(0, 1fr); } .messaging-surface { padding: 14px; } }

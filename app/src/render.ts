@@ -1048,9 +1048,11 @@ ${messagingStyles}
       });
 
       var stage = document.getElementById('stage');
+      var messaging = document.querySelector('.messaging');
       var segButtons = document.querySelectorAll('[data-appearance-set]');
       function setAppearance(mode) {
         if (stage) stage.setAttribute('data-appearance', mode);
+        if (messaging) messaging.setAttribute('data-appearance', mode);
         segButtons.forEach(function (b) {
           b.setAttribute('aria-pressed', b.getAttribute('data-appearance-set') === mode ? 'true' : 'false');
         });

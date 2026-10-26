@@ -50,7 +50,7 @@ export const messagingSurfaces: readonly MessagingSurface[] = [
 
 export type MessagingPreview = {
   surface: MessagingSurface; title: ResolvedInputValue
-  description: ResolvedInputValue | null; imageUrl?: string
+  description: ResolvedInputValue | null; imageUrl?: string; imageAlt?: string
 }
 
 export function resolveMessagingPreview(meta: MetaTags, id: MessagingSurfaceId): MessagingPreview {
@@ -61,5 +61,6 @@ export function resolveMessagingPreview(meta: MetaTags, id: MessagingSurfaceId):
     title: surface.status === 'unverified' ? { source: 'none', fallback: false } : resolvePlatformInput(meta, 'Open Graph', 'title'),
     description: surface.description ? resolvePlatformInput(meta, 'Open Graph', 'description') : null,
     imageUrl: surface.status === 'unverified' ? undefined : meta.ogImage,
+    imageAlt: meta.ogImageAlt,
   }
 }

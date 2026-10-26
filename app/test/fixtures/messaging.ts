@@ -7,7 +7,7 @@ export const messagingReport: Report = {
   meta: {
     title: 'Page title', description: 'Page description',
     ogTitle: 'Open Graph title', ogDescription: 'Open Graph description',
-    ogImage: 'https://example.com/share.png', ogSiteName: 'Example Notes',
+    ogImage: 'https://example.com/share.png', ogImageAlt: 'Share artwork with three colored bars', ogSiteName: 'Example Notes',
     twitterTitle: 'Feed-only title', twitterDescription: 'Feed-only description',
     twitterImage: 'https://example.com/feed.png', twitterCard: 'summary_large_image',
   },

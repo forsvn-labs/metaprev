@@ -64,3 +64,20 @@ conversation; no test sends messages automatically.
 The browser fixture uses the existing bundled Metaprev share artwork. Screenshots
 are illustrative test reports, not Messenger, Messages, Telegram, X, WhatsApp or
 Slack captures. Artifacts stay outside Git.
+
+## Verified increment
+
+The first implementation passed 82 CLI tests, 32 public-fetch security tests,
+42 real HTTP acceptance checks and both package typechecks. Offline browser
+acceptance passed 114 checks at 320, 390, 768 and 1440 CSS pixels, including
+no-JavaScript behavior and both image modes. These results are local evidence.
+
+Independent standards and requirements review found supplied image descriptions
+were dropped and the CLI messaging cards followed report chrome instead of the
+card appearance setting. Both were reproduced in browser regressions before the
+fixes; the final browser artifact passes those regressions.
+
+Full CLI lint retains the pre-existing 21 errors and five warnings recorded in
+STATUS; targeted lint on the new modules and fixtures passes. The local
+`no-mistakes` executable is unavailable; independent review and direct checks
+provide the validation for this increment. No release or deployment is claimed.
