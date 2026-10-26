@@ -6,6 +6,7 @@ const origin = 'https://metaprev.forsvn.com'
 const config = readAdsConfig({ SITE_URL: origin, ADS_ENABLED: 'on', ADS_OWNER_APPROVED: 'on', ADS_SITE_APPROVED: 'on', ADS_PRIVACY_REVIEWED: 'on', ADS_CMP_READY: 'on', ADS_CSP_REVIEWED: 'on', ADS_TXT_ENABLED: 'on', ADSENSE_CLIENT: 'ca-pub-1234567890123456', ADSENSE_SLOT: '1234567890' }, true)
 const loader = await Bun.file(new URL('../public/ads.js', import.meta.url)).text()
 const css = await Bun.file(new URL('../public/styles.css', import.meta.url)).text()
+const adCss = await Bun.file(new URL('../public/ads.css', import.meta.url)).text()
 const checks: { name: string; ok: boolean }[] = []
 const check = (name: string, ok: boolean) => { checks.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`) }
 const consent = { cmpStatus: 'loaded', eventStatus: 'tcloaded', gdprApplies: true, cmpId: 999, listenerId: 1, tcString: 'test-fixture-not-a-real-consent-string', vendor: { consents: { 755: true } }, purpose: { consents: Object.fromEntries([1, 2, 3, 4, 7, 9, 10].map(id => [id, true])) } }
@@ -27,6 +28,7 @@ try {
         await route.fulfill({ contentType: 'text/javascript', headers: { 'Access-Control-Allow-Origin': '*' }, body: 'window.__networkLoads = (window.__networkLoads || 0) + 1;' + (sdkFails ? 'window.adsbygoogle={push(){throw new Error("test SDK failure")}};' : '') }); return
       }
       if (url.pathname === '/ads.js') { await route.fulfill({ contentType: 'text/javascript', body: loader }); return }
+      if (url.pathname === '/ads.css') { await route.fulfill({ contentType: 'text/css', body: adCss }); return }
       if (url.pathname === '/styles.css') { await route.fulfill({ contentType: 'text/css', body: css }); return }
       if (url.pathname === '/ads-cmp.js') {
         adapterRequests++

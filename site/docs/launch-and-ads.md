@@ -125,3 +125,15 @@ addresses them and the Chromium regressions pass. The default preflight exits 1
 and lists the absent account, consent and approval configuration, as intended.
 These results establish a tested local increment, not a live launch or real ad
 provider acceptance. Runtime JSON and captures are under ignored `artifacts/`.
+
+## Coordination with messaging surfaces
+
+Surface PR #9 is commit `a8eddd5`. A read-only three-way comparison first
+found two append-only conflicts: `site/README.md` and `site/public/styles.css`.
+Advertising styles now live in `site/public/ads.css`, and this branch's README
+section sits before request limits. The surface adapters, report hooks and
+scoped messaging CSS are untouched. Apply/review surface PR #9 first, then this
+increment; retain both documentation sections. Run CLI/surface tests plus site
+contract, typecheck, messaging browser, ads browser and HTTP checks together
+before considering a later release. Neither branch changes or approves the
+separate hosting PR #8. No branch was merged for this comparison.

@@ -45,7 +45,7 @@ export function adsTxt(config: AdsConfig): string | null {
 export function renderAds(config: AdsConfig, path: string): string {
   if (!config.enabled || !eligibleAdPath(path)) return ''
   // Values are strictly parsed above. No page or visitor input enters this element.
-  return `<aside class="advertisement" data-metaprev-ad data-client="${config.client}" data-slot="${config.slot}" data-origin="${config.origin}" aria-label="Advertising choices"><div data-ad-container hidden><p>Advertisement</p><ins class="adsbygoogle" data-ad-client="${config.client}" data-ad-slot="${config.slot}" data-ad-format="auto" data-full-width-responsive="true"></ins></div><button type="button" data-ad-privacy>Advertising privacy choices</button><a href="/privacy">Privacy</a></aside><script src="/ads.js" defer></script>`
+  return `<link rel="stylesheet" href="/ads.css"><aside class="advertisement" data-metaprev-ad data-client="${config.client}" data-slot="${config.slot}" data-origin="${config.origin}" aria-label="Advertising choices"><div data-ad-container hidden><p>Advertisement</p><ins class="adsbygoogle" data-ad-client="${config.client}" data-ad-slot="${config.slot}" data-ad-format="auto" data-full-width-responsive="true"></ins></div><button type="button" data-ad-privacy>Advertising privacy choices</button><a href="/privacy">Privacy</a></aside><script src="/ads.js" defer></script>`
 }
 export function advertisingCsp(config: AdsConfig, path: string, nonce?: string): string | null {
   if (!config.enabled || !eligibleAdPath(path) || !nonce) return null

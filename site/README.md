@@ -47,6 +47,14 @@ The editable share artwork is `public/og.svg`. To rebuild its committed PNG, run
 `bun scripts/og.ts`. The SVG uses outlined text and does not need installed fonts.
 Sharp is a development dependency and does not run in the inspection service.
 
+## Launch and advertising increment
+
+[docs/launch-and-ads.md](docs/launch-and-ads.md) records observed host state,
+approval and provider prerequisites, guide-only placement, CMP integration,
+privacy boundaries and repeatable checks. `bun run preflight:ads` reports missing
+gates without printing publisher IDs. It exits 1 until advertising is ready.
+No account, billing, DNS or production change is part of this increment.
+
 ## Request limits
 
 The server checks DNS and pins the selected public address to each connection.
@@ -63,11 +71,3 @@ counter does not coordinate between instances. Do not trust arbitrary forwarding
 Advertising stays disabled by default. No analytics, report database, or browser history is enabled.
 The four data-driven guides answer distinct Open Graph field questions. New guide
 records need a separate task, checked sources, and useful field-specific content.
-
-## Launch and advertising increment
-
-[docs/launch-and-ads.md](docs/launch-and-ads.md) records observed host state,
-approval and provider prerequisites, guide-only placement, CMP integration,
-privacy boundaries and repeatable checks. `bun run preflight:ads` reports missing
-gates without printing publisher IDs. It exits 1 until advertising is ready.
-No account, billing, DNS or production change is part of this increment.
