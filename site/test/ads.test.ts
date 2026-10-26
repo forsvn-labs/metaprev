@@ -42,6 +42,7 @@ describe('advertising activation boundary', () => {
     expect(config.blockers).toEqual([])
     const html = renderAds(config, '/guides/og-image')
     expect(html).toContain('Advertisement')
+    expect(html).toContain('data-ad-privacy-link')
     expect(html).toContain(' hidden')
     expect(html).toContain('/ads.js')
     expect(html).not.toContain('src="https://')

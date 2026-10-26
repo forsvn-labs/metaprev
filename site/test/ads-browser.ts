@@ -56,6 +56,7 @@ try {
     await page.waitForLoadState('load')
     check(`${width}: revocation reloads and does not restart ads`, requests === 1 && new URL(page.url()).search === '?ads=off')
     check(`${width}: safe restart does not request CMP`, adapterRequests === 1)
+    check(`${width}: ad-free fallback retains usable privacy entry`, await page.locator('[data-ad-privacy-link]').isVisible() && await page.locator('[data-ad-privacy-link]').getAttribute('href') === '/guides/og-image')
     await page.goto(origin + '/guides/og-image')
     await page.waitForFunction(() => typeof window.__testConsent === 'function')
     await page.evaluate(data => window.__testConsent(data, true), consent)

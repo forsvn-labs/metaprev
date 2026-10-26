@@ -47,7 +47,8 @@ first increment does not implement a reviewed consent path for other regions.
 Revocation, back/forward cache restoration and failures after SDK execution end
 the ad document at the same guide with `?ads=off`. That document loads no CMP or
 ad network. A blocked SDK before execution does not cause a reload loop.
-The privacy control remains available after denial. Allowing ads again after a
+The privacy control remains available after denial. Ad-free or script-disabled
+guide documents retain a clean guide link for reopening choices. Allowing ads again after a
 stopped session requires a clean guide navigation and current CMP consent.
 
 Only eligible active guide responses use a fresh script nonce and strict-dynamic
@@ -118,7 +119,7 @@ unverified until an authorized real configuration exists.
 ## Local verification on 26 October
 
 The final Metaprev contract run passed 47 tests; typecheck passed. Chromium
-passed 48 checks at 320 and 1440 CSS pixels with all traffic intercepted. The
+passed 50 checks at 320 and 1440 CSS pixels with all traffic intercepted. The
 running loopback service passed 18 checks. Spec and standards reviewers found
 SDK-error, URL-mutation and BFCache lifecycle gaps; the saved implementation
 addresses them and the Chromium regressions pass. The default preflight exits 1

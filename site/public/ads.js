@@ -33,6 +33,8 @@
   adapter.onerror = () => shutdown()
   adapter.onload = () => {
     if (stopped || typeof window.__tcfapi !== 'function' || typeof window.metaprevAdPrivacyChoices !== 'function') { shutdown(); return }
+    slot.querySelector('[data-ad-privacy]').hidden = false
+    slot.querySelector('[data-ad-privacy-link]').hidden = true
     try {
       window.__tcfapi('addEventListener', 2, (data, success) => {
         if (stopped) return
