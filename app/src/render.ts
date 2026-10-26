@@ -1,4 +1,5 @@
 import { formatBytes } from './format.ts'
+import { renderMessagingCards, messagingStyles } from './messaging-render.ts'
 import { CARD_SUMMARY, resolvePlatformInput, resolvePrimaryInput } from './inputs.ts'
 import { buildAgentPrompt, buildFindingsText, buildMetaSnippet, buildRepairBrief, resolveInputs } from './repair.ts'
 import type { ImageProbe } from './types.ts'
@@ -247,6 +248,7 @@ export function renderHtml(report: Report): string {
   })();
 </script>
 <style>
+${messagingStyles}
   *, *::before, *::after { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; color-scheme: light; }
   html[data-chrome="dark"] { color-scheme: dark; }
@@ -906,6 +908,8 @@ export function renderHtml(report: Report): string {
         </div>
       </div>
     </section>
+
+    <div class="wrap">${renderMessagingCards(report, ogProbe?.dataUri, 'og-background')}</div>
 
     <section class="wrap section">
       <div class="panels">

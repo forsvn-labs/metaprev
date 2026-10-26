@@ -62,6 +62,15 @@ Three severity levels: **error** (broken input), **warn** (real compatibility or
 
 The rules use the [Open Graph protocol](https://ogp.me/) and current [LinkedIn sharing requirements](https://www.linkedin.com/help/linkedin/answer/a521928) for factual requirements. The report says when a card is representative rather than presenting a mock as a guaranteed platform screenshot.
 
+## Messaging previews
+
+The HTML report also includes Messenger, iMessage, Telegram, WhatsApp and Slack
+simulations, plus an explicitly unverified X Chat placeholder. Each context shows
+its metadata sources, client restrictions and integration limits. Native disclosure
+controls compare a compact Telegram example and a URL-only unavailable-preview
+scenario without connecting accounts or sending messages. See the
+[messaging contract and official sources](docs/messaging-surfaces.md).
+
 ## Install
 
 Run via `npx` (no install):
