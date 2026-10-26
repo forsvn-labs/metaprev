@@ -36,6 +36,16 @@ describe('messaging surface contract (official sources and documented workspace 
 })
 
 describe('rendered messaging output contract', () => {
+  test('missing title does not hide image and description source evidence', () => {
+    const html = renderMessagingCards({ ...messagingReport, meta: {
+      ogImage: messagingReport.meta.ogImage, ogDescription: 'Description without a title',
+    } }, messagingReport.image?.dataUri)
+    expect(html.split('Title: none · Image: og:image').length - 1).toBe(5)
+    expect(html.split('Description: og:description').length - 1).toBe(4)
+    expect(html.split('No metadata rendering assumed').length - 1).toBe(1)
+    expect(html).toContain('Description without a title')
+    expect(html).toContain('<img ')
+  })
   test('both report contexts include evidence, local controls and no connected integrations', () => {
     const html = renderMessagingCards(messagingReport, messagingReport.image?.dataUri)
     expect(html).toContain('Simulated preview')
