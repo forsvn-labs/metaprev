@@ -1289,3 +1289,9 @@ a:hover { text-decoration-color: var(--mark); }
   .previews.is-tabbed .platform[hidden] { display: block !important; }
   body { background: #fff; }
 }
+
+/* Optional advertising belongs to public guides only. */
+.advertisement { max-width: 44rem; margin: 2rem auto; padding: 1rem; border-top: 1px solid #d7dcd0; font: 0.75rem/1.5 sans-serif; }
+.advertisement[hidden] { display: none; }
+.advertisement .adsbygoogle { display: block; min-height: 120px; }
+.advertisement button { margin-right: 1rem; }

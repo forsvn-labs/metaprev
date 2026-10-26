@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "bun --watch server.ts",
     "start": "bun server.ts",
-    "test": "bun test test/secure.test.ts",
+    "test": "bun test test/secure.test.ts test/ads.test.ts",
+    "test:ads-browser": "bun test/ads-browser.ts",
+    "preflight:ads": "bun scripts/ads-preflight.ts",
     "test:http": "bun test/http.ts",
     "typecheck": "tsc --noEmit"
   },

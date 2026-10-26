@@ -3,3 +3,6 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Owner-supplied reviewed certified CMP adapter.
+public/ads-cmp.js

@@ -60,6 +60,14 @@ IP per minute. A reverse proxy can make users share one connecting IP. A multi-p
 public deployment needs its edge to apply per-client request limits; the in-memory
 counter does not coordinate between instances. Do not trust arbitrary forwarding headers.
 
-No ad network, analytics, cookies, report database, or browser history is enabled.
+Advertising stays disabled by default. No analytics, report database, or browser history is enabled.
 The four data-driven guides answer distinct Open Graph field questions. New guide
 records need a separate task, checked sources, and useful field-specific content.
+
+## Launch and advertising increment
+
+[docs/launch-and-ads.md](docs/launch-and-ads.md) records observed host state,
+approval and provider prerequisites, guide-only placement, CMP integration,
+privacy boundaries and repeatable checks. `bun run preflight:ads` reports missing
+gates without printing publisher IDs. It exits 1 until advertising is ready.
+No account, billing, DNS or production change is part of this increment.
