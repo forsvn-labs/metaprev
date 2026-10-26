@@ -42,7 +42,7 @@ export function renderMessagingCards(report: Report, previewImage?: string | nul
     <p class="messaging__intro">No messaging accounts connected. These are local simulations from this inspection, not sent messages or live platform results. Frames are illustrative; client versions, settings and caches can change the result.</p>
     <div class="messaging__grid">${messagingSurfaces.map(surface => {
       const preview = resolveMessagingPreview(report.meta, surface.id)
-      const source = preview.title.source === 'none' ? 'No metadata rendering assumed' : `Title: ${preview.title.source}${preview.title.fallback ? ' (workspace fallback)' : ''} · Image: ${preview.imageUrl ? 'og:image' : 'none'}`
+      const source = surface.status === 'unverified' ? 'No metadata rendering assumed' : `Title: ${preview.title.source}${preview.title.fallback && preview.title.value ? ' (workspace fallback)' : ''} · Image: ${preview.imageUrl ? 'og:image' : 'none'}`
       return `<article class="messaging-surface" data-messaging-surface="${surface.id}">
         <header class="messaging-surface__head"><h3>${surface.label}</h3><span class="messaging-surface__status">${surface.status === 'unverified' ? 'Needs live verification' : 'Simulated preview'}</span></header>
         ${mock(preview, domain, image, false, imageMode === 'og-background')}
