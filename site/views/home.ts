@@ -7,6 +7,7 @@ import { resolvePlatformInput } from '../../app/src/inputs.ts'
 import { buildFindingsText, buildMetaSnippet } from '../../app/src/repair.ts'
 import { formatBytes } from '../../app/src/format.ts'
 import { validate } from '../../app/src/validate.ts'
+import { renderMessagingCards } from '../../app/src/messaging-render.ts'
 
 type Meta = WebReport['meta']
 type Issue = WebReport['issues'][number]
@@ -382,6 +383,7 @@ function renderPanels(report: WebReport): string {
         </div>
       </div>
     </section>`).join('')}
+    ${renderMessagingCards(report, safeImagePath(report.preview.image))}
   </div>`
 }
 

@@ -1289,3 +1289,35 @@ a:hover { text-decoration-color: var(--mark); }
   .previews.is-tabbed .platform[hidden] { display: block !important; }
   body { background: #fff; }
 }
+
+/* Messaging simulations; paired with app/src/messaging-render.ts. */
+
+.messaging { margin: 36px 0; color: inherit; font-family: system-ui, sans-serif; }
+.messaging__heading { margin: 0 0 10px; font-size: 1.25rem; }
+.messaging__intro { max-width: 82ch; line-height: 1.6; }
+.messaging__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 20px; }
+.messaging-surface { min-width: 0; padding: 18px; border: 1px solid currentColor; border-radius: 12px; }
+.messaging-surface__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.messaging-surface__head h3 { margin: 0; font-size: 1rem; }
+.messaging-surface__status { font-size: .75rem; }
+.messaging-surface p, .messaging-surface details { font-size: .8125rem; line-height: 1.6; margin: 12px 0 0; }
+.messaging-surface summary { cursor: pointer; padding: 5px 0; font-weight: 600; }
+.messaging-surface a { color: inherit; text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.messaging-surface__source { overflow-wrap: anywhere; font-family: ui-monospace, monospace; }
+.messaging-surface__url { padding-top: 10px; font-size: .8125rem; overflow-wrap: anywhere; }
+.messaging-card { overflow: hidden; border: 1px solid #c8cdd3; border-radius: 12px; background: #f3f4f6; color: #17212b; }
+.messaging-card__image { display: block; width: 100%; aspect-ratio: 1.91 / 1; object-fit: cover; min-width: 0; background-size: cover; background-position: center; }
+.messaging-card__empty { display: grid; place-items: center; padding: 8px; background: #e2e6eb; color: #424b58; font-size: .75rem; }
+.messaging-card__text { min-width: 0; padding: 12px; }
+.messaging-card__domain { display: block; font-size: .75rem; color: #455568; overflow-wrap: anywhere; }
+.messaging-card__title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; margin-top: 4px; font-size: .9375rem; line-height: 1.4; }
+.messaging-card .messaging-card__description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; margin: 4px 0 0; font-size: .8125rem; line-height: 1.5; }
+.messaging-card--imessage { border-radius: 18px; background: #e9e9eb; }
+.messaging-card--telegram { border-left: 3px solid #2981a3; background: #edf7fb; }
+.messaging-card--slack { border: 0; border-left: 3px solid #979ca3; border-radius: 0; background: #fff; }
+.messaging-card--compact { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: start; }
+.messaging-card--compact .messaging-card__image { aspect-ratio: 1; height: 80px; }
+.messaging-surface details .messaging-card { margin-top: 10px; }
+[data-appearance='dark'] .messaging-card, [data-card-appearance='dark'] .messaging-card { background: #242e3a; color: #f0f4f8; border-color: #627080; }
+[data-appearance='dark'] .messaging-card__domain, [data-card-appearance='dark'] .messaging-card__domain { color: #c2d1e1; }
+@media (max-width: 700px) { .messaging__grid { grid-template-columns: minmax(0, 1fr); } .messaging-surface { padding: 14px; } }
