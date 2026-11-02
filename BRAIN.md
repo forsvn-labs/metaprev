@@ -1,30 +1,51 @@
-# External knowledge
+# Brain
 
-Provider: Google Drive, personal scope.
-Project key: `forsvn/metaprev`.
+Knowledge home: Google Drive, personal scope, project key `forsvn/metaprev` · Confirmed: 2026-10-23 (recorded route verification)
 
-Resolve this stable key through the authorized private project registry
-in the personal tools repository:
+Visibility: public
 
-```bash
-python3 drive_projects.py forsvn/metaprev
-```
+## Where knowledge lives
 
-The verified folder identity and access scope stay in that private resolver.
-The 2026-10-23 route verification matched the registered folder identity
-and confirmed its `OPEN THIS.md` navigation map. Open that map first;
-follow its existing source, resource, evidence, and archive routes.
-Retain each source's truth date and link to the original rather than
-copying whole documents between Git and Drive.
+| Knowledge | Home | Access |
+| --- | --- | --- |
+| Platform references, source images, compatibility research, review captures | Google Drive project `forsvn/metaprev` | Owner's private registry, existing authorized personal account |
+| Code, build configuration, runtime assets, licenses, code-dependent documentation | This repository | Git |
+| Work tracking | [PROGRESS.md](PROGRESS.md) | Git |
+| Dated verification and historical remainders | [docs/progress-log.md](docs/progress-log.md) | Git; original captures remain in Drive |
 
-Drive owns platform references, source images, compatibility research, and review captures.
-Git owns code, build configuration, required runtime assets, licenses,
-and code-dependent documentation. Application data retains its existing
-store; Drive is the knowledge provider, not a new runtime database.
+Application data retains its existing store. Drive is the knowledge provider,
+not a new runtime database.
 
-Use the existing authorized account; a folder locator does not grant
-access or prove cloud sync. If access fails, request the folder from its
-owner and record the access blocker in the private work record. Keep
-folder IDs, mounted paths, credentials, and private discussions in the
-private resolver or Drive. [STRUCTURE.md](STRUCTURE.md) maps ownership;
-[STATUS.md](STATUS.md) owns current project state.
+## Retrieve
+
+1. Resolve `forsvn/metaprev` through the owner's private project registry in
+   the personal tools repository with `python3 drive_projects.py forsvn/metaprev`.
+2. Open the resolved project's `OPEN THIS.md` map first. Follow its existing
+   source, resource, evidence, and archive routes.
+3. Open the original. Keep each source's truth date; an archived handoff is
+   history, not current state.
+
+## Save
+
+- Keep platform references, source images, compatibility research, and review
+  captures in the existing Drive project. Keep code-dependent material in Git.
+- Link to the original rather than copying whole documents between Git and Drive.
+- Keep folder IDs, mounted paths, credentials, and private discussions in the
+  private resolver or Drive. This public repository retains only the neutral key.
+- No automatic Drive write authority is recorded here. Follow the task's authorization.
+
+## Access rules
+
+- Account and scope: use the existing authorized personal account.
+- Approved route: the private registry and its existing resolver above. The
+  verified folder identity and access scope stay in that private resolver.
+- The 2026-10-23 route verification matched the registered folder identity and
+  confirmed its navigation map. This migration does not verify access again.
+- A folder locator does not grant access or prove cloud sync.
+
+## Access problems
+
+- If access fails, request the folder from its owner and record the access
+  blocker in the private work record.
+- Do not change accounts, providers, sharing, credentials, permissions, or
+  network settings to make a link work. Continue work that does not need access.
