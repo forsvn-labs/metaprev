@@ -29,6 +29,10 @@ Next action: Improve the public inspector and prepare Cloudflare hosting, author
 
 ## 2026-11-06
 
+- Cloudflare access repaired in Executor: replaced live full-schema discovery with a bundled 72-path catalog (126 tools). Type checks, reference validation, tool discovery and a real read-only account request passed. Credentials and mutation approval rules were retained. Hosting deployment itself is still pending.
+
+- Cloudflare diagnosis: a fresh Executor account check returned healthy on 2026-11-06. Tool discovery still times out. The deployed app separately loads the full Cloudflare OpenAPI schema through liveOpenapiRouter; loader cost or serialization size is the likely failure area, not rejected credentials. Browser fallback reached sign-in in the shared preview and a security challenge with the Chrome profile; no authenticated dashboard access or deployment was verified.
+
 - Hung requested usable public web apps and selected Cloudflare hosting. Existing web interfaces are present in source; public deployment remains unverified.
 - Cloudflare tool discovery through Executor failed (timeout followed by app evaluation failure). Local Docker cannot connect to its daemon.
 - Added a report navigation path from feedback to observed tags and repair snippets. Typecheck and 32 security tests passed. Full visual review and deployment remain outstanding.
