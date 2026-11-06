@@ -6,7 +6,7 @@ Public launch work resumed on 2026-11-06 with Cloudflare selected by Hung. The e
 ([draft PR #8](https://github.com/forsvn-labs/metaprev/pull/8)). Website and
 messaging source merged; no public backend or later package release is established.
 
-Next action: Restore Cloudflare Containers access, then deploy and verify `metaprev.forsvn.com`. Hung authorized deployment on 2026-11-06.
+Next action: Resolve the Cloudflare Workers Paid subscription prerequisite, then deploy and verify `metaprev.forsvn.com`. Hung authorized deployment on 2026-11-06.
 
 ## Current state
 
@@ -28,6 +28,8 @@ Next action: Restore Cloudflare Containers access, then deploy and verify `metap
 - Historical release gaps and deferred outcomes remain in [docs/progress-log.md](docs/progress-log.md); none are active commitments.
 
 ## 2026-11-06
+
+- Dashboard verification in Helium: the FORSVN account token already has Containers Read/Edit. The account is on Workers Free; the Containers page explicitly requires Workers Paid ($5/month plus usage). No token permissions changed and no subscription was purchased. Spending approval is pending. The exact cause of the API 401 is not independently isolated from this plan limitation.
 
 - Deployment to `metaprev.forsvn.com` is authorized. DNS and Workers reads succeeded through Executor, but Containers returned HTTP 401. CLI fallback has no login. No public deployment completed.
 - Recovered hosting source from PR #8 into the current checkout. Docker is running; edge typecheck/build and the Linux container build passed. Verified 32 security tests, 7 client-limit checks, and 42 container HTTP checks including live external inspection. Evidence: ignored `site/artifacts/deployment/results.json` and `site/artifacts/container-http/results.json`.
