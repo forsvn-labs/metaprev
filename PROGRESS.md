@@ -1,12 +1,12 @@
 # Progress
 
-Updated: 2026-11-01 · Stage: paused · Health: Paused
+Updated: 2026-11-06 · Stage: building · Health: At risk
 
-The public launch has been on hold since 2026-10-24 at Hung's request
+Public launch work resumed on 2026-11-06 with Cloudflare selected by Hung. The earlier hold was recorded
 ([draft PR #8](https://github.com/forsvn-labs/metaprev/pull/8)). Website and
 messaging source merged; no public backend or later package release is established.
 
-Next action: None for launch until Hung gives a new instruction and confirms the hosting choice.
+Next action: Improve the public inspector and prepare Cloudflare hosting, authorized by Hung on 2026-11-06. Verify access and deployment prerequisites before launch.
 
 ## Current state
 
@@ -15,7 +15,7 @@ Next action: None for launch until Hung gives a new instruction and confirms the
 
 ## Gates
 
-- Do not resume deployment or the hosting upgrade without a new owner instruction.
+- Cloudflare hosting is authorized as of 2026-11-06; verify access, costs, and operational settings before deployment.
 - Keep PR #8 in draft, public indexing off, and FORSVN's project link on GitHub during the hold.
 - If resumed, confirm hosting, HTTPS, edge per-client limits, and operational log settings; verify inspection, image delivery, and the HTML form before indexing or changing the project link.
 - A multi-process host needs shared edge limits; request counters and image cache are process-local.
@@ -26,6 +26,13 @@ Next action: None for launch until Hung gives a new instruction and confirms the
 ## Later
 
 - Historical release gaps and deferred outcomes remain in [docs/progress-log.md](docs/progress-log.md); none are active commitments.
+
+## 2026-11-06
+
+- Hung requested usable public web apps and selected Cloudflare hosting. Existing web interfaces are present in source; public deployment remains unverified.
+- Cloudflare tool discovery through Executor failed (timeout followed by app evaluation failure). Local Docker cannot connect to its daemon.
+- Added a report navigation path from feedback to observed tags and repair snippets. Typecheck and 32 security tests passed. Full visual review and deployment remain outstanding.
+
 
 ## 2026-11-01
 

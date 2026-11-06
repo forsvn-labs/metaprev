@@ -537,6 +537,11 @@ export function renderResult(report: WebReport): string {
       ${copyButton('metadata', 'Copy metadata', 'primary')}
       ${copyButton('json', 'Copy JSON')}
     </div>
+    <nav class="report__actions" aria-label="Review steps">
+      <a href="#mp-findings-title">1. Review feedback</a>
+      <a href="#mp-tags-title">2. Inspect tags</a>
+      <a href="#mp-repair-title">3. Copy repairs</a>
+    </nav>
   </header>
 
   <section class="block" aria-labelledby="mp-previews-title">
