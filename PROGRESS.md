@@ -6,7 +6,7 @@ Public launch work resumed on 2026-11-06 with Cloudflare selected by Hung. The e
 ([draft PR #8](https://github.com/forsvn-labs/metaprev/pull/8)). Website and
 messaging source merged; no public backend or later package release is established.
 
-Next action: Complete the approved Workers Paid checkout, deploy and verify `metaprev.forsvn.com`, then enable indexing. Pilot scope is MetaPrev first; TalkToBook hosting is deferred.
+Next action: Assess a free Cloudflare release before any purchase. Hung put the paid upgrade on hold pending competitor and free-route review.
 
 ## Current state
 
@@ -14,6 +14,8 @@ Next action: Complete the approved Workers Paid checkout, deploy and verify `met
 | --- | --- | --- | --- |
 
 ## Gates
+
+- Latest owner direction: prefer a free route; do not purchase Workers Paid or continue paid deployment without a new decision after the landscape review.
 
 - Cloudflare hosting is authorized as of 2026-11-06; verify access, costs, and operational settings before deployment.
 - Deployment hold lifted by Hung on 2026-11-06. Keep public indexing off until live acceptance passes; PR #8 remains historical draft context.
@@ -28,6 +30,8 @@ Next action: Complete the approved Workers Paid checkout, deploy and verify `met
 - Historical release gaps and deferred outcomes remain in [docs/progress-log.md](docs/progress-log.md); none are active commitments.
 
 ## 2026-11-06
+
+- Latest direction supersedes the earlier paid-pilot approval: Hung prefers free hosting and wants to assess similar tools before confirming spending. No subscription purchase is established. Browser-only conversion and a small free Worker are candidates, not implemented or validated replacements.
 
 - Hung approved a MetaPrev-first 90-day validation pilot after reviewing the ad-revenue scenarios: $15 in base hosting over three months, with usage kept bounded. This is not a fixed total-bill guarantee or a revenue forecast. TalkToBook paid hosting is deferred.
 - Checkout is open in Helium but requires the owner’s payment/billing information. No charge or Workers Paid activation is verified. The owner completed Cloudflare CLI OAuth authorization; image deployment can use that local login while Executor remains the API access route.
