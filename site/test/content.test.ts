@@ -1,7 +1,7 @@
 // Failure modes recorded before implementation: malformed/duplicate URLs,
 // incomplete records, unsafe source/support links, invalid review dates,
 // accidental draft publication, and unreviewed/future-dated publication.
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test, setSystemTime } from 'bun:test'
 import { parseGuides, publishedGuides, parseSupportUrl } from '../lib/content.ts'
 const record = { slug: 'example', field: 'og:image', title: 'Example guide', description: 'A guide description', answer: 'An answer', intent: 'A distinct task', checks: ['Check the page'], example: '<meta property="og:image">', limitation: 'A limitation', source: { name: 'Protocol', url: 'https://ogp.me/' }, status: 'published', reviewed: '2026-11-07' }
 describe('content publication boundary', () => {
@@ -22,6 +22,11 @@ describe('content publication boundary', () => {
     expect(() => parseGuides([{ ...record, reviewed: '2026-02-30' }])).toThrow()
     expect(() => parseGuides([{ ...record, reviewed: '' }])).toThrow()
     expect(() => publishedGuides(parseGuides([record]), '2026-11-06')).toThrow()
+  })
+  test('Worker startup with an epoch clock still selects published guides', () => {
+    setSystemTime(new Date(0))
+    try { expect(publishedGuides(parseGuides([record]))).toHaveLength(1) }
+    finally { setSystemTime() }
   })
   test('support stays hidden until configured; allows only known HTTPS providers', () => {
     expect(parseSupportUrl('')).toBe('')

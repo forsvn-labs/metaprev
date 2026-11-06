@@ -1,5 +1,6 @@
 import data from '../data/guides.json'
 import { parseGuides, publishedGuides } from '../lib/content.ts'
 import { supportUrl } from '../data/support.ts'
+const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())
 const all = parseGuides(data.guides)
-console.log(JSON.stringify({ total: all.length, published: publishedGuides(all).length, drafts: all.filter(g => g.status === 'draft').length, supportUrl }, null, 2))
+console.log(JSON.stringify({ total: all.length, published: publishedGuides(all, today).length, drafts: all.filter(g => g.status === 'draft').length, supportUrl }, null, 2))
