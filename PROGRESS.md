@@ -19,7 +19,7 @@ Next action: Use the public tool and collect actual failure cases before adding 
 
 | Item | State | Evidence | Date |
 | --- | --- | --- | --- |
-| Public Open Graph review | Shipped | https://metaprev.forsvn.com — deployment f4f99909-7282-44bb-96de-bd6b6363efe9; live checks passed | 2026-11-07 |
+| Public Open Graph review | Shipped | https://metaprev.forsvn.com — deployment 0f2f6799-b230-4725-b1ce-edcc8bb158e9; live checks passed | 2026-11-07 |
 
 
 44 security/fetch tests, both typechecks, and 42 live HTTP checks passed.
@@ -27,6 +27,7 @@ All 56 live browser checks passed. Acceptance covers four widths, metadata/JSON 
 unsafe URL rejection, image delivery and no-JavaScript submission. Evidence is in
 ignored `site/artifacts/free-browser/`; screenshots were captured with Cap.
 Deployment is `metaprev-free`; `site/README.md` documents limits and reproduction.
+HTML opts out of automatic Cloudflare analytics injection; JS/CSS compression was verified.
 No paid plan was purchased. No Containers, database or paid bindings are configured.
 
 </details>

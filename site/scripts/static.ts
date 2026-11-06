@@ -41,7 +41,8 @@ try {
     if (!value) throw new Error(`The public response is missing ${name}.`)
     return `  ${name}: ${value}`
   })
-  await Bun.write(new URL('_headers', output), `/*\n${headers.join('\n')}\n  Cache-Control: public, max-age=60, no-transform\n`)
+  const htmlPaths = ['/', '/index.html', '/404.html', ...routes.filter(route => route !== '/' && !route.includes('.')).flatMap(route => [route, route + '.html'])]
+  await Bun.write(new URL('_headers', output), `/*\n${headers.join('\n')}\n${htmlPaths.map(route => `${route}\n  Cache-Control: public, max-age=60, no-transform`).join('\n')}\n`)
   console.log(`Built ${routes.length} public routes for the edge.`)
 } finally {
   child.kill()
