@@ -1,6 +1,6 @@
 // Home page and result views. Every page-controlled string passes through `e`.
 // The CSP allows no inline styles, so geometry comes from HTML or SVG attributes.
-import type { WebReport } from '../lib/inspect.ts'
+import type { WebReport } from '../lib/inspect-core.ts'
 import { escapeHtml as e } from '../lib/html.ts'
 import { guides } from '../data/guides.ts'
 import { resolvePlatformInput } from '../../app/src/inputs.ts'
@@ -703,7 +703,7 @@ export function renderHomeContent({ result, error, url }: { result?: WebReport; 
     <dl class="ticket" aria-label="What a check does">
       <div><dt>Reads</dt><dd>HTML head only, no scripts</dd></div>
       <div><dt>Tags</dt><dd>og:*, twitter:*, title tags</dd></div>
-      <div><dt>Fetches</dt><dd>og:image, raster ≤ 5 MB</dd></div>
+      <div><dt>Fetches</dt><dd>og:image, raster ≤ 1 MB</dd></div>
       <div><dt>Draws</dt><dd>Facebook, X, LinkedIn, Discord</dd></div>
       <div><dt>Returns</dt><dd>Findings, tags, fixes, JSON</dd></div>
     </dl>
@@ -728,7 +728,7 @@ export function renderHomeContent({ result, error, url }: { result?: WebReport; 
       <div><dt>Platform renderers and caches</dt><dd>Platforms change layouts, run experiments and keep earlier cards. After a fix, refresh the card with the platform’s own tool, such as the ${external('https://developers.facebook.com/tools/debug/', 'Facebook Sharing Debugger')} or ${external('https://www.linkedin.com/post-inspector/', 'LinkedIn Post Inspector')}.</dd></div>
       <div><dt>JavaScript-rendered tags</dt><dd>The check reads the HTML head as the server sends it. No page scripts run, so tags added in the browser are not seen.</dd></div>
       <div><dt>Private pages</dt><dd>Local, private and password-protected addresses are refused. Run the CLI on your own machine for those.</dd></div>
-      <div><dt>Size limits</dt><dd>Up to 512 KB of HTML, four redirects, and PNG, JPEG, WebP or GIF images up to 5 MB. A separate twitter:image is not fetched on the web.</dd></div>
+      <div><dt>Size limits</dt><dd>The free web app reads up to 128 KB of HTML and raster images up to 1 MB, following at most four redirects. A separate twitter:image is not fetched on the web.</dd></div>
     </dl>
   </section>
 

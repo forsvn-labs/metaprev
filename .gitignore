@@ -7,3 +7,5 @@ dist/
 !.env.example
 .agents/
 skills-resources/
+
+artifacts/

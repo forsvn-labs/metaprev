@@ -1,26 +1,44 @@
 # Progress
 
-Updated: 2026-11-06 · Stage: building · Health: At risk
+Updated: 2026-11-07 · Stage: live · Health: On track
 
-Public launch work resumed on 2026-11-06 with Cloudflare selected by Hung. The earlier hold was recorded
-([draft PR #8](https://github.com/forsvn-labs/metaprev/pull/8)). Website and
-messaging source merged; no public backend or later package release is established.
+## Shipped
 
-Next action: Assess a free Cloudflare release before any purchase. Hung put the paid upgrade on hold pending competitor and free-route review.
+- **Public Open Graph review** (2026-11-07): live at https://metaprev.forsvn.com, alongside the existing CLI.
+- Cloudflare Free Worker and static pages replace the proposed Containers deployment.
+- Reports show previews, observed tags, feedback and repair snippets. HTML form works without JavaScript.
 
-## Current state
+## Up next
 
-| State | Item | Evidence | Date |
+- Observe real search demand and free-tier availability. No revenue or traffic forecast is established.
+- Ads remain off until a publisher/site and placements are approved.
+
+Next action: Use the public tool and collect actual failure cases before adding infrastructure.
+
+<details><summary>Technical details</summary>
+
+| Item | State | Evidence | Date |
 | --- | --- | --- | --- |
+| Public Open Graph review | Shipped | https://metaprev.forsvn.com — deployment f4f99909-7282-44bb-96de-bd6b6363efe9; live checks passed | 2026-11-07 |
+
+
+44 security/fetch tests, both typechecks, and 42 live HTTP checks passed.
+All 56 live browser checks passed. Acceptance covers four widths, metadata/JSON copy, platform tabs,
+unsafe URL rejection, image delivery and no-JavaScript submission. Evidence is in
+ignored `site/artifacts/free-browser/`; screenshots were captured with Cap.
+Deployment is `metaprev-free`; `site/README.md` documents limits and reproduction.
+No paid plan was purchased. No Containers, database or paid bindings are configured.
+
+</details>
 
 ## Gates
 
-- Latest owner direction: prefer a free route; do not purchase Workers Paid or continue paid deployment without a new decision after the landscape review.
+- Owner approved the free route. No paid upgrade or metered service is authorized.
 
 - Cloudflare hosting is authorized as of 2026-11-06; verify access, costs, and operational settings before deployment.
 - Deployment hold lifted by Hung on 2026-11-06. Keep public indexing off until live acceptance passes; PR #8 remains historical draft context.
-- If resumed, confirm hosting, HTTPS, edge per-client limits, and operational log settings; verify inspection, image delivery, and the HTML form before indexing or changing the project link.
-- A multi-process host needs shared edge limits; request counters and image cache are process-local.
+- Live HTTPS, inspection and form acceptance passed; public pages are indexable. Inspection responses remain no-store/noindex.
+- Per-isolate request guards are not global quotas. Free platform ceilings can interrupt service; image cache can expire early.
 - Advertising needs a publisher account and a separate owner decision after the tool is live.
 - Search indexing, field performance, and AI citations need observations after authorized public deployment.
 - Website acceptance: [security and HTTP contract](site/test/acceptance.md). Messaging changes: [failure modes and acceptance contract](app/docs/messaging-surfaces.md).

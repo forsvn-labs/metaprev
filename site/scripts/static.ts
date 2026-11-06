@@ -41,7 +41,7 @@ try {
     if (!value) throw new Error(`The public response is missing ${name}.`)
     return `  ${name}: ${value}`
   })
-  await Bun.write(new URL('_headers', output), `/*\n${headers.join('\n')}\n  Cache-Control: public, max-age=60\n`)
+  await Bun.write(new URL('_headers', output), `/*\n${headers.join('\n')}\n  Cache-Control: public, max-age=60, no-transform\n`)
   console.log(`Built ${routes.length} public routes for the edge.`)
 } finally {
   child.kill()

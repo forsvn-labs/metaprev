@@ -5,37 +5,8 @@ import type { LookupAddress } from 'node:dns'
 import { request as httpRequest } from 'node:http'
 import { request as httpsRequest } from 'node:https'
 import type { IncomingHttpHeaders } from 'node:http'
-import ipaddr from 'ipaddr.js'
-
-export class InspectionError extends Error {
-  constructor(message: string, readonly status = 422) { super(message) }
-}
-
-export function assertPublicAddress(address: string): void {
-  if (!ipaddr.isValid(address) || ipaddr.parse(address).range() !== 'unicast') {
-    throw new InspectionError('Only public Internet addresses can be inspected.', 400)
-  }
-}
-
-export function parseTarget(input: string): URL {
-  const value = input.trim()
-  if (!value || value.length > 2048 || /[\u0000-\u001f\u007f\\]/.test(value)) {
-    throw new InspectionError('Enter a public HTTP or HTTPS URL.', 400)
-  }
-  let url: URL
-  try { url = new URL(/^[a-z][a-z\d+.-]*:/i.test(value) ? value : `https://${value}`) }
-  catch { throw new InspectionError('Enter a valid public URL.', 400) }
-  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.port) {
-    throw new InspectionError('Use HTTP or HTTPS on its standard port, without a username or password.', 400)
-  }
-  const host = url.hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase()
-  if (ipaddr.isValid(host)) assertPublicAddress(host)
-  else if (!host.includes('.') || /\.(localhost|local|internal|home|lan|test|invalid)$/.test(host)) {
-    throw new InspectionError('Local and private hosts are available through the CLI only.', 400)
-  }
-  url.hash = ''
-  return url
-}
+import { InspectionError, parseTarget, assertPublicAddress } from './url-policy.ts'
+export { InspectionError, parseTarget, assertPublicAddress } from './url-policy.ts'
 
 type FetchKind = 'html' | 'image'
 export type PublicResponse = {
@@ -114,7 +85,7 @@ export async function fetchPublic(input: string, { kind, signal }: { kind: Fetch
             reject(new InspectionError(kind === 'html' ? 'The URL did not return an HTML page.' : 'The image must be PNG, JPEG, WebP or GIF.'))
             return
           }
-          const maxBytes = kind === 'html' ? 512 * 1024 : 5 * 1024 * 1024
+          const maxBytes = kind === 'html' ? 128 * 1024 : 1024 * 1024
           const chunks: Buffer[] = []
           let size = 0
           let headTail = ''
@@ -129,7 +100,7 @@ export async function fetchPublic(input: string, { kind, signal }: { kind: Fetch
             if (size > maxBytes) {
               settled = true
               response.destroy()
-              reject(new InspectionError(kind === 'html' ? 'The HTML head exceeds the 512 KB inspection limit.' : 'The image exceeds the 5 MB web inspection limit.'))
+              reject(new InspectionError(kind === 'html' ? 'The HTML head exceeds the 128 KB inspection limit.' : 'The image exceeds the 1 MB web inspection limit.'))
               return
             }
             chunks.push(chunk)

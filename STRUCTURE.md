@@ -20,7 +20,10 @@ app/skills/metaprev/       Bundled coding-agent guidance
 app/CHANGELOG.md           Versioned package history
 site/server.ts             Public HTTP routes, request limits, and response policy
 site/lib/public-fetch.ts   Public-address DNS checks and pinned, bounded requests
-site/lib/inspect.ts        CLI parser/validator adapter and short-lived image cache
+site/lib/inspect.ts        Local wrapper and short-lived image cache
+site/lib/inspect-core.ts   Shared inspection/parser adapter
+site/lib/url-policy.ts     Pure public-URL and IP policy
+site/edge/                Cloudflare Free Worker, native fetch, static build and tests
 site/lib/compress.ts       Streaming gzip negotiation for text responses
 site/lib/page.ts           HTML shell, canonical URLs, and structured data
 site/data/guides.ts        Distinct Open Graph guide records

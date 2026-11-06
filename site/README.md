@@ -50,7 +50,7 @@ Sharp is a development dependency and does not run in the inspection service.
 ## Request limits
 
 The server checks DNS and pins the selected public address to each connection.
-Redirects repeat that check. HTML reads stop at the end of the head or 512 KB.
+Redirects repeat that check. HTML reads stop at the end of the head or 128 KB.
 The HTML request has a ten-second deadline. Image requests have a six-second
 deadline and a 5 MB limit. Only checked PNG, JPEG, WebP, and GIF bytes reach the
 browser. Image IDs expire after five minutes in a cache capped at 24 MB.
@@ -76,36 +76,32 @@ from `site/`. It starts a loopback fixture server and uses installed Chrome.
 Outputs default to `/tmp/metaprev-messaging-evidence`; set `OUT` to change it.
 The fixtures prove Metaprev behavior, not live-client fidelity.
 
-## Cloudflare deployment
+## Cloudflare Free deployment
 
-`edge/` serves the public pages and assets directly from Cloudflare. Only
-`/api/inspect`, `/inspect`, and `/api/image` use the private Bun container.
-The static build reads the real server's public routes, so the browser and
-search surfaces use the same content. It never exports inspection results.
+Live at https://metaprev.forsvn.com. `edge/` serves static pages and a small
+Worker for `/api/inspect`, `/inspect`, and `/api/image`. No Containers, paid
+bindings, database, or Docker is required. The CLI remains separate.
 
-The deployment needs Docker, Bun, Node.js 22.18 or later, an authorized
-Cloudflare account with Containers, and the `forsvn.com` zone. From `edge/`:
+From `edge/`: `bun install`, `bun run typecheck`, then
+`PUBLIC_INDEXING=on bun run build` and `bun run deploy` with an authorized
+Cloudflare CLI login. Public indexing was enabled after live HTTP acceptance.
+Reports remain no-store/noindex. Logs and traces are disabled in the Worker.
 
-```sh
-bun install
-node node_modules/cf/bin/cf auth login
-bun run typecheck
-bun run build
-bun run deploy
-```
+The Worker reads at most 128 KiB of HTML and 1 MiB per raster image, with
+redirect, type and deadline limits. It uses native Cloudflare fetch after
+public-address DNS screening. Unlike the local Node fetcher, this does not pin
+DNS: native Workers network isolation is part of its safety boundary. Do not
+add private-network bindings, origin-trust headers, or secrets to this worker.
 
-The provider configuration limits the inspector to one `lite` container. It
-sleeps after five idle minutes. The Worker replaces the client-address header
-before private ingress; `METAPREV_PRIVATE_EDGE=on` trusts that header only in
-this private deployment. Standalone servers must leave that setting off.
-`bun test/deployment.ts`, run from `site/`, verifies both address policies.
+Images use opaque IDs in Cloudflare's local edge cache for up to five minutes;
+they may disappear earlier or at a different edge location. Inspect again if
+an image expires. Reports and submitted URLs are not stored by the application.
+The per-isolate guards allow 20 inspections/minute per IP and four concurrent
+inspections; these are not global quotas. Workers Free account request and CPU
+ceilings apply; exceeding them can make inspections unavailable. Large/blocked
+pages should be inspected with the CLI.
 
-The first deployment keeps indexing off until the domain, HTTPS, form, metadata,
-and image responses are checked. Cloudflare operational logs and traces sample
-one percent of Worker requests and remove URL query strings. The application
-does not log submitted URL bodies or store reports. A container rollout can
-expire existing image IDs; inspect again to refresh them.
-
-The root Dockerfile contains only the website runtime and shared parser source.
-Local credentials, tests, build tools, and review captures are excluded. The
-published CLI package remains separate from this hosting configuration.
+Verification: `bun test site/edge/test/free-fetch.test.ts site/test/secure.test.ts`
+from the repository root; `BASE=https://metaprev.forsvn.com bun site/test/http.ts`
+and `BASE=https://metaprev.forsvn.com bun site/test/browser.ts` exercise the live app.
+The old Dockerfile remains for local/container users but is not publicly deployed.

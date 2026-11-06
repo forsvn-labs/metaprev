@@ -1,6 +1,6 @@
 # metaprev
 
-Inspect Open Graph metadata before sharing a page. Use the local CLI or the public URL website.
+Inspect Open Graph metadata before sharing a page. Use the local CLI or [the free web app](https://metaprev.forsvn.com).
 
 - [VISION.md](VISION.md): intended users, outcomes, and scope.
 - [BRAIN.md](BRAIN.md): external knowledge key and authorized Drive access.

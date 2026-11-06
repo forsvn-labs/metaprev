@@ -49,3 +49,10 @@ not a new runtime database.
   blocker in the private work record.
 - Do not change accounts, providers, sharing, credentials, permissions, or
   network settings to make a link work. Continue work that does not need access.
+
+## Public hosting
+
+Approved 2026-11-06: Cloudflare Free at `metaprev.forsvn.com`, Worker `metaprev-free`.
+Executor is the connected API route; deployment uses the owner-authorized local
+Cloudflare CLI OAuth login. Credentials stay in its OS-backed storage. No paid
+upgrade or Containers. Code/build commands live in `site/README.md`.

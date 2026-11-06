@@ -1,8 +1,9 @@
 import { escapeHtml as e, jsonForHtml } from './html.ts'
 import { renderSiteFooter, renderSiteHeader } from '../views/home.ts'
 
-export const siteUrl = new URL(process.env.SITE_URL ?? 'https://metaprev.forsvn.com').origin
-export const indexingEnabled = process.env.PUBLIC_INDEXING === 'on'
+const runtimeEnv = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {}
+export const siteUrl = new URL(runtimeEnv.SITE_URL ?? 'https://metaprev.forsvn.com').origin
+export const indexingEnabled = runtimeEnv.PUBLIC_INDEXING === 'on'
 export const siteDescription = 'Check a public URL’s Open Graph tags, share image and metadata before you post. See representative previews and factual issues with Metaprev.'
 
 export function page({ title, description = siteDescription, path = '/', body, privatePage = false, schema = [] }: {

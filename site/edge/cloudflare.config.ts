@@ -1,17 +1,8 @@
-import { bindings, defineConfig, defineContainer, defineWorker, exports } from "cf/config";
+import { bindings, defineConfig, defineWorker } from "cf/config";
 import * as entrypoint from "./src/index.ts" with { type: "cf-worker" };
 
-const inspector = defineContainer({
-	name: "metaprev-inspector",
-	image: { dockerfile: "../../Dockerfile", buildContext: "../.." },
-	instanceType: "lite",
-	maxInstances: 1,
-	ssh: { enabled: false },
-	observability: { enabled: true, logs: { enabled: true } },
-});
-
 const worker = defineWorker({
-		name: "metaprev",
+		name: "metaprev-free",
 		compatibilityDate: "2026-10-24",
 		entrypoint,
 		domains: ["metaprev.forsvn.com"],
@@ -20,12 +11,11 @@ const worker = defineWorker({
 			notFoundHandling: "404-page",
 			runWorkerFirst: ["/api/*", "/inspect"],
 		},
-		exports: { Inspector: exports.durableObject({ storage: "sqlite", container: inspector }) },
 		observability: {
 			enabled: true,
 			redactQueryString: true,
-			logs: { enabled: true, headSamplingRate: 0.01 },
-			traces: { enabled: true, headSamplingRate: 0.01 },
+			logs: { enabled: false },
+			traces: { enabled: false },
 		},
 });
 
@@ -34,8 +24,6 @@ export default defineConfig({
 		...worker,
 		env: {
 			ASSETS: bindings.assets(),
-			INSPECTOR: bindings.durableObject({ worker, exportName: "Inspector" }),
 		},
 	},
-	containers: [inspector],
 });

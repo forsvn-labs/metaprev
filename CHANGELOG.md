@@ -1,5 +1,10 @@
 # metaprev changelog
 
+## 2026-11-07 — Public web app
+
+- Published Open Graph review, feedback and repair UI at https://metaprev.forsvn.com.
+- Runs on Cloudflare Free without Containers; CLI remains available.
+
 ## 2026-09-19 — 0.6.0
 
 - Recorded release of the local repair workspace, independent report themes,
