@@ -26,7 +26,11 @@ site/lib/url-policy.ts     Pure public-URL and IP policy
 site/edge/                Cloudflare Free Worker, native fetch, static build and tests
 site/lib/compress.ts       Streaming gzip negotiation for text responses
 site/lib/page.ts           HTML shell, canonical URLs, and structured data
-site/data/guides.ts        Distinct Open Graph guide records
+site/data/guides.json      Editable guide records and publication status
+site/data/guides.ts        Validated public guide selection
+site/data/support.json     Public GitHub Sponsors destination
+site/cms/                  Local editor configuration and publishing guide
+site/scripts/cms.ts        Loopback-only Decap editor and file proxy
 site/views/                Server-rendered website content
 site/public/               CSS, browser controls, and required runtime artwork
 site/scripts/og.ts         Rebuild the outlined share artwork as a raster image
@@ -63,7 +67,7 @@ Where new work goes:
 | CLI parsing, validation, or repairs | `app/src/`, with regression contracts in `app/test/` |
 | Shared messaging policy or simulations | `app/src/messaging.ts` and `app/src/messaging-render.ts` |
 | Website routes and inspection policy | `site/server.ts` and `site/lib/` |
-| Website content and guide records | `site/views/` and `site/data/guides.ts` |
+| Website content and guide records | `site/views/` and `site/data/guides.json` |
 | Website acceptance checks | `site/test/` |
 
 The old export helper does not make another repository authoritative.

@@ -61,8 +61,10 @@ public deployment needs its edge to apply per-client request limits; the in-memo
 counter does not coordinate between instances. Do not trust arbitrary forwarding headers.
 
 No ad network, analytics, cookies, report database, or browser history is enabled.
-The four data-driven guides answer distinct Open Graph field questions. New guide
-records need a separate task, checked sources, and useful field-specific content.
+Ten data-driven guides answer distinct Open Graph and delivery questions.
+Use [the content editor guide](cms/README.md) to edit, review and publish them.
+The footer links to Hung’s verified public GitHub Sponsors profile; payments
+remain on GitHub. No payment or tracking script is embedded.
 
 ## Messaging previews
 

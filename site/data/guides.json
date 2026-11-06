@@ -1,0 +1,218 @@
+{
+  "guides": [
+    {
+      "slug": "og-image",
+      "field": "og:image",
+      "title": "Check and fix your Open Graph image",
+      "description": "Find missing, blocked or incorrect Open Graph images. Check the URL, downloaded dimensions, alternative text and declared image metadata.",
+      "answer": "og:image identifies the image that represents a page when a service reads its Open Graph metadata. The tag points to an image URL, not a page containing the image. A successful page request does not prove that the image can be downloaded.",
+      "intent": "Inspect a missing, blocked or incorrectly sized share image.",
+      "checks": [
+        "Inspect the final page URL. Read the first og:image value in the HTML head and open its absolute HTTP or HTTPS URL.",
+        "Check the image response independently. Confirm it returns image bytes rather than a sign-in page, redirect loop or error document.",
+        "Compare the downloaded width and height with og:image:width and og:image:height. Use the asset’s real dimensions; changing the tags does not resize the file.",
+        "Add og:image:alt that describes the actual image. The Open Graph protocol recommends alternative text when og:image is present."
+      ],
+      "example": "<meta property=\"og:image\" content=\"https://example.com/share.png\">\n<meta property=\"og:image:width\" content=\"1200\">\n<meta property=\"og:image:height\" content=\"630\">\n<meta property=\"og:image:alt\" content=\"The dashboard showing a completed preview check\">",
+      "limitation": "The example dimensions describe one asset. Open Graph does not require a universal image size. Each consuming service can crop, cache or reject images differently. Metaprev’s web inspector accepts PNG, JPEG, WebP and GIF up to 5 MB; the local CLI supports additional inspection paths.",
+      "source": {
+        "name": "Open Graph protocol: image structured properties",
+        "url": "https://ogp.me/#structured"
+      },
+      "status": "published",
+      "reviewed": "2026-10-24"
+    },
+    {
+      "slug": "og-title",
+      "field": "og:title",
+      "title": "Check your Open Graph title and its fallback",
+      "description": "See which share title is present, distinguish og:title from the HTML title and X overrides, and fix missing or stale share headlines.",
+      "answer": "og:title supplies the title of a page as it should appear in a social graph. It is one of the four basic properties required by the Open Graph protocol. An HTML title or an X-specific title is a different field, even when a preview tool uses it as a fallback.",
+      "intent": "Resolve a missing or unexpected share headline.",
+      "checks": [
+        "Inspect the deployed URL rather than the source file. Confirm og:title exists in the initial HTML head.",
+        "Compare og:title with the page title. Make each truthful for its context; the social title does not have to include every navigation or search suffix.",
+        "Check twitter:title separately if X needs different copy. Metaprev shows the field it observed rather than inventing a headline.",
+        "After a deployment, inspect again. If Metaprev sees the new title but a service still shows the old one, investigate that service’s cache with its own tools."
+      ],
+      "example": "<title>Preview inspector · Example</title>\n<meta property=\"og:title\" content=\"See your link before you share it\">\n<meta name=\"twitter:title\" content=\"A preview check before you post\">",
+      "limitation": "Metaprev renders representative cards. It cannot clear a platform cache, guarantee that a consumer uses a fallback, or prove that all readers see the same headline. There is no universal Open Graph title character limit in the protocol.",
+      "source": {
+        "name": "Open Graph protocol: basic metadata",
+        "url": "https://ogp.me/#metadata"
+      },
+      "status": "published",
+      "reviewed": "2026-10-24"
+    },
+    {
+      "slug": "og-description",
+      "field": "og:description",
+      "title": "Check your Open Graph description",
+      "description": "Inspect a missing or stale share description, compare it with the page description, and add factual supporting copy to your metadata.",
+      "answer": "og:description gives a short description of the object represented by a page. The Open Graph protocol lists it as optional metadata. A consuming service may have its own requirements or choose not to display it, so a missing description and a hidden description are different problems.",
+      "intent": "Find why the supporting copy is missing or unexpected.",
+      "checks": [
+        "Read og:description from the fetched HTML head. Do not assume that a visible paragraph on the page becomes the share description.",
+        "Compare og:description with meta name=\"description\". Metaprev can use the page description as a representative fallback, while keeping the observed fields separate.",
+        "Write a factual description that explains the page. Avoid adding unsupported promises or padding the text to an arbitrary target length.",
+        "Inspect twitter:description if X copy differs. Recheck after deployment, then distinguish an outdated platform cache from outdated HTML."
+      ],
+      "example": "<meta name=\"description\" content=\"Inspect the tags and image behind a public link.\">\n<meta property=\"og:description\" content=\"Check your share title, image and metadata before posting.\">",
+      "limitation": "A tag can be present while a card omits the supporting text. Card layout, available space, platform policy and caching remain outside this inspection. The Open Graph protocol does not define one universal description length.",
+      "source": {
+        "name": "Open Graph protocol: optional metadata",
+        "url": "https://ogp.me/#optional"
+      },
+      "status": "published",
+      "reviewed": "2026-10-24"
+    },
+    {
+      "slug": "og-url",
+      "field": "og:url",
+      "title": "Check the canonical URL in your Open Graph tags",
+      "description": "Compare the inspected URL, redirects, og:url and the HTML canonical. Find staging addresses or wrong page identities before sharing.",
+      "answer": "og:url identifies the canonical URL of the object represented by a page. The Open Graph protocol treats this URL as the object’s permanent identifier. It is distinct from the address originally entered into a preview tool and from the final address after HTTP redirects.",
+      "intent": "Find incorrect share identities and staging URLs.",
+      "checks": [
+        "Inspect the public URL you intend to share. Note the final URL after redirects and compare it with og:url.",
+        "Check that og:url identifies the intended page. A copied homepage URL on every article can give different pages the same declared social identity.",
+        "Compare the HTML rel=\"canonical\" link as a separate field. Investigate accidental staging domains, insecure schemes or unrelated paths.",
+        "When query parameters are part of the actual page identity, preserve the intended canonical policy. Do not strip all parameters just because they exist."
+      ],
+      "example": "<link rel=\"canonical\" href=\"https://example.com/guides/share-preview\">\n<meta property=\"og:url\" content=\"https://example.com/guides/share-preview\">",
+      "limitation": "Metaprev reports observed metadata and redirects. It does not choose your canonical policy, change a search engine’s selected canonical, or prove that social services merge identities in the same way.",
+      "source": {
+        "name": "Open Graph protocol: basic metadata",
+        "url": "https://ogp.me/#metadata"
+      },
+      "status": "published",
+      "reviewed": "2026-10-24"
+    },
+    {
+      "slug": "duplicate-og-images",
+      "field": "Multiple images",
+      "title": "Choose the first image in your Open Graph tags",
+      "description": "Find conflicting image tags and choose a deliberate first image for a shared page.",
+      "answer": "Multiple og:image tags describe multiple images. The Open Graph protocol gives the first tag preference when values conflict. Each image’s structured properties belong immediately after its root tag.",
+      "intent": "Resolve conflicting image tags.",
+      "checks": [
+        "Read the deployed head in document order. Record every og:image tag.",
+        "Find which layout, page or plugin adds each tag. Remove accidental duplicates at their source.",
+        "Put the intended primary image first and keep its width, height and alt text together. Inspect the deployed result again."
+      ],
+      "example": "<meta property=\"og:image\" content=\"https://example.com/primary.png\">\n<meta property=\"og:image:alt\" content=\"Primary product view\">\n<meta property=\"og:image\" content=\"https://example.com/detail.png\">\n<meta property=\"og:image:alt\" content=\"Product detail\">",
+      "limitation": "Tag order is a declared preference. It does not guarantee a consumer’s final image selection.",
+      "source": {
+        "name": "Open Graph arrays",
+        "url": "https://ogp.me/#array"
+      },
+      "status": "published",
+      "reviewed": "2026-11-07"
+    },
+    {
+      "slug": "og-type",
+      "field": "og:type",
+      "title": "Choose an Open Graph type for a page",
+      "description": "Distinguish a general website page from an article when setting og:type.",
+      "answer": "og:type declares the kind of object a page represents. Choose a type that describes the page, then check that type’s additional properties.",
+      "intent": "Correct a copied or inappropriate object type.",
+      "checks": [
+        "Check the fetched og:type. Do not infer it from the visual layout.",
+        "Use website for a general site page, or article for an actual article. Check the protocol before choosing a more specific type.",
+        "Keep title, URL and image consistent with the same object; inspect the page after deployment."
+      ],
+      "example": "<meta property=\"og:type\" content=\"website\">\n<meta property=\"og:title\" content=\"Example preview tool\">\n<meta property=\"og:url\" content=\"https://example.com/\">\n<meta property=\"og:image\" content=\"https://example.com/share.png\">",
+      "limitation": "Changing the type does not force a platform to use a particular card layout.",
+      "source": {
+        "name": "Open Graph object types",
+        "url": "https://ogp.me/#types"
+      },
+      "status": "published",
+      "reviewed": "2026-11-07"
+    },
+    {
+      "slug": "nextjs-open-graph",
+      "field": "Next.js",
+      "title": "Check Open Graph metadata in Next.js",
+      "description": "Trace Next.js share metadata from its server component to the deployed page and image.",
+      "answer": "Next.js supports a metadata object, generateMetadata, and file conventions for Open Graph images. Metadata exports belong in Server Components. Start by identifying which mechanism owns the affected route.",
+      "intent": "Find the source of missing Next.js share metadata.",
+      "checks": [
+        "Check the page and parent layouts for metadata exports. Inspect file-based opengraph-image assets too.",
+        "For a fixed page, define a metadata object in its server page or layout. Use the actual public origin and image.",
+        "Deploy, then inspect the final URL and image independently. Compare the fetched values with the intended route."
+      ],
+      "example": "import type { Metadata } from 'next'\n\nexport const metadata: Metadata = {\n  metadataBase: new URL('https://example.com'),\n  openGraph: {\n    title: 'Example tool',\n    url: '/',\n    images: ['/share.png'],\n  },\n}",
+      "limitation": "This is an App Router example. Dynamic metadata can stream, and crawler handling can differ. A head-only inspection does not prove what every bot receives.",
+      "source": {
+        "name": "Next.js metadata and OG images",
+        "url": "https://nextjs.org/docs/app/getting-started/metadata-and-og-images"
+      },
+      "status": "published",
+      "reviewed": "2026-11-07"
+    },
+    {
+      "slug": "share-image-content-type",
+      "field": "Image response",
+      "title": "Fix a share image URL that returns HTML",
+      "description": "Check whether the image address returns real image bytes or an error, login or document response.",
+      "answer": "A file extension is not proof of an image response. The Content-Type header describes the response media type. Check the response body as well as its headers.",
+      "intent": "Diagnose an image address that returns the wrong content.",
+      "checks": [
+        "Request the exact image URL from the fetched og:image tag. Follow redirects and note the final status.",
+        "Check Content-Type and the downloaded file. A login page with a .png URL is still HTML.",
+        "Correct the public asset route or storage permissions, then inspect again without relying on your signed-in browser."
+      ],
+      "example": "curl --location --max-redirs 4 --dump-header /tmp/image-headers.txt \\\n  --output /tmp/share-image 'https://example.com/share.png'\nfile /tmp/share-image",
+      "limitation": "Use this command only for a trusted public URL. Correct headers alone do not establish valid image bytes or platform acceptance.",
+      "source": {
+        "name": "MDN Content-Type",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Type"
+      },
+      "status": "published",
+      "reviewed": "2026-11-07"
+    },
+    {
+      "slug": "share-url-redirects",
+      "field": "Redirects",
+      "title": "Trace redirects before checking a share preview",
+      "description": "Find whether a shared address reaches the intended page or redirects to a login, old route or wrong domain.",
+      "answer": "An HTTP redirect sends the client to another address using a redirect status and Location header. Diagnose the final destination before editing metadata on the original route.",
+      "intent": "Find the page a shared URL actually reaches.",
+      "checks": [
+        "Request the shared address and record each Location value. Check HTTP-to-HTTPS and domain redirects.",
+        "Confirm the final response is the intended public page. Resolve loops or sign-in redirects before changing its tags.",
+        "Inspect the final page and compare its og:url with the intended shared identity."
+      ],
+      "example": "curl --location --max-redirs 4 --dump-header /tmp/page-headers.txt \\\n  --output /tmp/page.html 'https://example.com/old-page'",
+      "limitation": "A browser may follow script-based navigation that a metadata fetcher does not execute. Metaprev bounds redirects; it does not emulate a browser session.",
+      "source": {
+        "name": "MDN HTTP redirections",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Redirections"
+      },
+      "status": "published",
+      "reviewed": "2026-11-07"
+    },
+    {
+      "slug": "stale-share-image",
+      "field": "Caching",
+      "title": "Diagnose an old share image after deployment",
+      "description": "Separate stale page HTML, cached image bytes and a platform’s saved preview.",
+      "answer": "A page and its image are separate resources and can have different cache lifetimes. A fresh page response can still point to an older cached image. Check both layers before changing the metadata again.",
+      "intent": "Locate the layer serving an outdated image.",
+      "checks": [
+        "Inspect the deployed page and confirm the current image URL. If the tag is old, investigate the page deployment or cache first.",
+        "Download that image and compare its bytes with the new asset. Review Cache-Control and validation headers at the origin and CDN.",
+        "When appropriate for your asset pipeline, publish the changed image at a versioned URL and update the tag. Recheck before investigating a platform-specific cache."
+      ],
+      "example": "<meta property=\"og:image\" content=\"https://example.com/share-v2.png\">",
+      "limitation": "A new asset URL does not clear every social platform’s page cache. Metaprev cannot invalidate third-party caches.",
+      "source": {
+        "name": "MDN HTTP caching",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Caching"
+      },
+      "status": "published",
+      "reviewed": "2026-11-07"
+    }
+  ]
+}

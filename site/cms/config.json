@@ -1,0 +1,130 @@
+{
+  "backend": {
+    "name": "git-gateway"
+  },
+  "local_backend": {
+    "url": "http://127.0.0.1:8081/api/v1"
+  },
+  "media_folder": "site/public/uploads",
+  "public_folder": "/uploads",
+  "collections": [
+    {
+      "name": "content",
+      "label": "Metaprev content",
+      "files": [
+        {
+          "name": "guides",
+          "label": "Guides",
+          "file": "site/data/guides.json",
+          "fields": [
+            {
+              "name": "guides",
+              "label": "Guides",
+              "widget": "list",
+              "summary": "{{fields.title}} \u2014 {{fields.status}}",
+              "fields": [
+                {
+                  "label": "Slug",
+                  "name": "slug",
+                  "widget": "string"
+                },
+                {
+                  "label": "Field",
+                  "name": "field",
+                  "widget": "string"
+                },
+                {
+                  "label": "Title",
+                  "name": "title",
+                  "widget": "string"
+                },
+                {
+                  "label": "Description",
+                  "name": "description",
+                  "widget": "string"
+                },
+                {
+                  "label": "Intent",
+                  "name": "intent",
+                  "widget": "string"
+                },
+                {
+                  "label": "Answer",
+                  "name": "answer",
+                  "widget": "text"
+                },
+                {
+                  "label": "Example",
+                  "name": "example",
+                  "widget": "text"
+                },
+                {
+                  "label": "Limitation",
+                  "name": "limitation",
+                  "widget": "text"
+                },
+                {
+                  "label": "Checks",
+                  "name": "checks",
+                  "widget": "list",
+                  "field": {
+                    "label": "Check",
+                    "name": "check",
+                    "widget": "text"
+                  }
+                },
+                {
+                  "label": "Source",
+                  "name": "source",
+                  "widget": "object",
+                  "fields": [
+                    {
+                      "label": "Name",
+                      "name": "name",
+                      "widget": "string"
+                    },
+                    {
+                      "label": "URL",
+                      "name": "url",
+                      "widget": "string"
+                    }
+                  ]
+                },
+                {
+                  "label": "Status",
+                  "name": "status",
+                  "widget": "select",
+                  "options": [
+                    "draft",
+                    "published"
+                  ],
+                  "default": "draft",
+                  "hint": "Published records enter the next build. Review the source and example first."
+                },
+                {
+                  "label": "Reviewed",
+                  "name": "reviewed",
+                  "widget": "string",
+                  "hint": "Actual source review date, YYYY-MM-DD. Never use a future date."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "support",
+          "label": "Support profile",
+          "file": "site/data/support.json",
+          "fields": [
+            {
+              "name": "url",
+              "label": "Public support URL",
+              "widget": "string",
+              "required": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
