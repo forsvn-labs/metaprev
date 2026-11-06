@@ -6,7 +6,7 @@ Public launch work resumed on 2026-11-06 with Cloudflare selected by Hung. The e
 ([draft PR #8](https://github.com/forsvn-labs/metaprev/pull/8)). Website and
 messaging source merged; no public backend or later package release is established.
 
-Next action: Resolve the Cloudflare Workers Paid subscription prerequisite, then deploy and verify `metaprev.forsvn.com`. Hung authorized deployment on 2026-11-06.
+Next action: Complete the approved Workers Paid checkout, deploy and verify `metaprev.forsvn.com`, then enable indexing. Pilot scope is MetaPrev first; TalkToBook hosting is deferred.
 
 ## Current state
 
@@ -28,6 +28,10 @@ Next action: Resolve the Cloudflare Workers Paid subscription prerequisite, then
 - Historical release gaps and deferred outcomes remain in [docs/progress-log.md](docs/progress-log.md); none are active commitments.
 
 ## 2026-11-06
+
+- Hung approved a MetaPrev-first 90-day validation pilot after reviewing the ad-revenue scenarios: $15 in base hosting over three months, with usage kept bounded. This is not a fixed total-bill guarantee or a revenue forecast. TalkToBook paid hosting is deferred.
+- Checkout is open in Helium but requires the owner’s payment/billing information. No charge or Workers Paid activation is verified. The owner completed Cloudflare CLI OAuth authorization; image deployment can use that local login while Executor remains the API access route.
+- Pilot acceptance: verify public inspection and images, enable indexing only after live checks, measure search demand and actual ad earnings, and review economics after 90 days. No scheduled task was created. No publisher ID was found in the project; ads remain off until a publisher/site is approved. Intended ad placement is useful guides, not private inspection output.
 
 - Dashboard verification in Helium: the FORSVN account token already has Containers Read/Edit. The account is on Workers Free; the Containers page explicitly requires Workers Paid ($5/month plus usage). No token permissions changed and no subscription was purchased. Spending approval is pending. The exact cause of the API 401 is not independently isolated from this plan limitation.
 
