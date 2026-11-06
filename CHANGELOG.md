@@ -1,5 +1,12 @@
 # metaprev changelog
 
+## 2026-11-07 — Content and sponsorship pilot
+
+- Published six additional guides, bringing the public guide library to ten.
+- Added a footer link to Hung’s GitHub Sponsors page and repository funding configuration.
+- Added a local Decap editor, draft exclusion and build-time content validation.
+- Fixed Worker startup by keeping review-date checks in the static build.
+
 ## 2026-11-07 — Performance update
 
 - Read the HTML head without downloading a large body or rejecting its full Content-Length.

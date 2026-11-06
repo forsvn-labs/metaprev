@@ -34,4 +34,7 @@ bun run dev
 
 Open `http://127.0.0.1:4323`. [site/README.md](site/README.md) covers the public URL
 inspector, limits, verification, and host configuration. The website is separate
-from the published CLI. Deployment and advertising are not enabled by this source change.
+from the published CLI. The free public site includes ten guides and a GitHub Sponsors link.
+To edit guides, run `bun run cms` from `site/` and follow
+[the publishing guide](site/cms/README.md). The CMS is local; ads and daily publishing
+automation are not configured.

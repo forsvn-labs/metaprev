@@ -4,14 +4,12 @@ Updated: 2026-11-07 · Stage: live · Health: On track
 
 ## Shipped
 
+- **Content pilot** (2026-11-07): ten guides and the GitHub Sponsors support link are live. Authors can edit guides in the local CMS and publish through the existing build.
+
 - **Public Open Graph review** (2026-11-07): live at https://metaprev.forsvn.com, alongside the existing CLI.
 - **Faster inspection** (2026-11-07): accepts an early HTML head on large pages, preloads its text font and compresses report JSON.
 - Cloudflare Free Worker and static pages replace the proposed Containers deployment.
 - Reports show previews, observed tags, feedback and repair snippets. HTML form works without JavaScript.
-
-## Ready to ship
-
-- **Content pilot** (2026-11-07): ten source-reviewed guides, a local Decap editor, draft exclusion, and a support link to Hung’s verified GitHub Sponsors profile. Source and local checks are complete; production deployment is pending.
 
 ## Up next
 
@@ -19,13 +17,13 @@ Updated: 2026-11-07 · Stage: live · Health: On track
 - Observe real search demand and free-tier availability. No revenue or traffic forecast is established.
 - Ads remain off until a publisher/site and placements are approved.
 
-Next action: Review and deploy the content pilot; restore Search Console access for the baseline.
+Next action: Restore Search Console access, record the search baseline, and review content performance.
 
 <details><summary>Technical details</summary>
 
 | Item | State | Evidence | Date |
 | --- | --- | --- | --- |
-| Content pilot | Ready to ship | Ten guide records; 51 unit/security tests, site/edge typechecks and production build passed. Browser artifact: `site/artifacts/content-pilot/results.json`. Local editor is excluded from deployment; setup: `site/cms/README.md`. | 2026-11-07 |
+| Content pilot | Shipped | PRs [#13](https://github.com/forsvn-labs/metaprev/pull/13) and [#14](https://github.com/forsvn-labs/metaprev/pull/14); deployed `b3d551bc-7289-4ded-bcc7-0c4efbd61f18`. 52 unit/security tests, both typechecks, production build, 60 live HTTP checks and 85 live browser checks passed. Artifacts: `site/artifacts/content-live/` and `site/artifacts/http/results.json`. Local CMS save was verified before release; setup: `site/cms/README.md`. | 2026-11-07 |
 | Faster inspection | Shipped | Live HTTP/browser checks passed; sample JSON response 52,694 → 7,732 transferred bytes with gzip; reports remain no-store | 2026-11-07 |
 | Public Open Graph review | Shipped | https://metaprev.forsvn.com — deployment 232b9841-5179-493a-9327-9ebcc4f03eb7; live checks passed | 2026-11-07 |
 
@@ -55,6 +53,10 @@ No paid plan was purchased. No Containers, database or paid bindings are configu
 ## Later
 
 - Historical release gaps and deferred outcomes remain in [docs/progress-log.md](docs/progress-log.md); none are active commitments.
+
+## 2026-11-07
+
+- Published the ten-guide content pilot and GitHub Sponsors link. Cloudflare rejected the initial upload because a module-level date check ran against its startup clock; moved date validation to the static build and verified the corrected live deployment. The editor remains local; ads, daily automation and remote CMS login are not configured.
 
 ## 2026-11-06
 
