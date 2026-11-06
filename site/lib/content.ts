@@ -24,10 +24,11 @@ export function parseGuides(input: unknown): Guide[] {
   }
   return guides
 }
-export function publishedGuides(guides: Guide[], today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())): Guide[] {
+// Date validation is build-only: Workers initialize modules with an epoch clock.
+export function publishedGuides(guides: Guide[], today?: string): Guide[] {
   return guides.filter(guide => {
     if (guide.status !== 'published') return false
-    if (guide.reviewed > today) throw new Error(`Published guide has a future review date: ${guide.slug}`)
+    if (today && guide.reviewed > today) throw new Error(`Published guide has a future review date: ${guide.slug}`)
     return true
   })
 }

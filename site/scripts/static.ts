@@ -1,6 +1,7 @@
 // Generate public edge assets from the real server. Inspection responses never
 // enter this build: the allowlist contains only public pages and discovery.
 import { cp, mkdir, rm } from 'node:fs/promises'
+import './check-content.ts'
 import { guides } from '../data/guides.ts'
 
 const site = new URL('../', import.meta.url)
