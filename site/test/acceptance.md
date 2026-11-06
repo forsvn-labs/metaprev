@@ -23,3 +23,15 @@ Recorded before implementation, 2026-10-24.
 - Browser verification covers desktop/mobile, errors, keyboard, platform tabs,
   copy actions, external links, no-JS form submission and no horizontal overflow.
 - No third-party advertising or tracking script is loaded in the initial release.
+
+## Content pilot acceptance (2026-11-07)
+
+- Validate all content, reject duplicate/unsafe slugs, malformed dates, empty required
+  fields and unsafe source/support URLs. Unit cases were written before implementation.
+- Drafts stay out of HTML, discovery and sitemap through one shared guide selector.
+- Each guide shows its actual source review date and matching structured data.
+- The local CMS edits JSON; it cannot publish a deployment. Its unauthenticated
+  proxy binds only to loopback and restricts the browser origin.
+- Public builds exclude the editor, proxy, dependencies and raw draft JSON.
+- Desktop/mobile checks verify all guides without JavaScript, support links,
+  review dates, sitemap and overflow; write a JSON acceptance artifact.

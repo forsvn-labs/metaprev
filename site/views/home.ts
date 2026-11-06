@@ -3,6 +3,7 @@
 import type { WebReport } from '../lib/inspect-core.ts'
 import { escapeHtml as e } from '../lib/html.ts'
 import { guides } from '../data/guides.ts'
+import { supportUrl } from '../data/support.ts'
 import { resolvePlatformInput } from '../../app/src/inputs.ts'
 import { buildFindingsText, buildMetaSnippet } from '../../app/src/repair.ts'
 import { formatBytes } from '../../app/src/format.ts'
@@ -141,6 +142,7 @@ export function renderSiteFooter(): string {
       <a href="/about">About</a>
       <a href="/privacy">Privacy</a>
       ${external(GITHUB, 'Source')}
+      ${supportUrl ? external(supportUrl, 'Support Hung’s tools') : ''}
     </nav>
     <p class="site-footer__fine">MIT licence. Cards are representative previews, not platform screenshots.</p>
   </div>

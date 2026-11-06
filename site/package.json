@@ -5,9 +5,11 @@
   "scripts": {
     "dev": "bun --watch server.ts",
     "start": "bun server.ts",
-    "test": "bun test test/secure.test.ts",
+    "test": "bun test test/secure.test.ts test/content.test.ts",
     "test:http": "bun test/http.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cms": "bun scripts/cms.ts",
+    "check:content": "bun scripts/check-content.ts"
   },
   "dependencies": {
     "image-size": "^2.0.2",
@@ -16,6 +18,8 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "decap-cms": "3.17.3",
+    "decap-server": "3.11.6",
     "playwright": "^1.63.0",
     "sharp": "^0.35.4",
     "typescript": "^5.9.3"

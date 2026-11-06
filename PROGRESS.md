@@ -9,17 +9,23 @@ Updated: 2026-11-07 · Stage: live · Health: On track
 - Cloudflare Free Worker and static pages replace the proposed Containers deployment.
 - Reports show previews, observed tags, feedback and repair snippets. HTML form works without JavaScript.
 
+## Ready to ship
+
+- **Content pilot** (2026-11-07): ten source-reviewed guides, a local Decap editor, draft exclusion, and a support link to Hung’s verified GitHub Sponsors profile. Source and local checks are complete; production deployment is pending.
+
 ## Up next
 
+- Restore the expired Google authorization before recording search baselines. Remote CMS OAuth, daily automation and ad-network onboarding remain unconfigured.
 - Observe real search demand and free-tier availability. No revenue or traffic forecast is established.
 - Ads remain off until a publisher/site and placements are approved.
 
-Next action: Monitor real inspection failures and traffic before adding infrastructure.
+Next action: Review and deploy the content pilot; restore Search Console access for the baseline.
 
 <details><summary>Technical details</summary>
 
 | Item | State | Evidence | Date |
 | --- | --- | --- | --- |
+| Content pilot | Ready to ship | Ten guide records; 51 unit/security tests, site/edge typechecks and production build passed. Browser artifact: `site/artifacts/content-pilot/results.json`. Local editor is excluded from deployment; setup: `site/cms/README.md`. | 2026-11-07 |
 | Faster inspection | Shipped | Live HTTP/browser checks passed; sample JSON response 52,694 → 7,732 transferred bytes with gzip; reports remain no-store | 2026-11-07 |
 | Public Open Graph review | Shipped | https://metaprev.forsvn.com — deployment 232b9841-5179-493a-9327-9ebcc4f03eb7; live checks passed | 2026-11-07 |
 
