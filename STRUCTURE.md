@@ -64,8 +64,11 @@ Where new work goes:
 | Website acceptance checks | `site/test/` |
 
 The old export helper does not make another repository authoritative.
-The hosting paths proposed in PR #8 are outside this checkout; see
-[PROGRESS.md](PROGRESS.md) for the launch hold.
+Cloudflare hosting is in `site/edge/`, with the private runtime in the root
+`Dockerfile`. `site/scripts/static.ts` exports public pages for the edge.
+From `site/edge/`, run `bun install`, `bun run typecheck`, and `bun run build`.
+`site/test/deployment.ts` checks the private-edge client-address policy.
+See [PROGRESS.md](PROGRESS.md) for the current access blocker.
 
 ## Knowledge
 

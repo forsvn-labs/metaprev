@@ -75,3 +75,37 @@ Run the offline browser acceptance check with `bun test/messaging-browser.ts`
 from `site/`. It starts a loopback fixture server and uses installed Chrome.
 Outputs default to `/tmp/metaprev-messaging-evidence`; set `OUT` to change it.
 The fixtures prove Metaprev behavior, not live-client fidelity.
+
+## Cloudflare deployment
+
+`edge/` serves the public pages and assets directly from Cloudflare. Only
+`/api/inspect`, `/inspect`, and `/api/image` use the private Bun container.
+The static build reads the real server's public routes, so the browser and
+search surfaces use the same content. It never exports inspection results.
+
+The deployment needs Docker, Bun, Node.js 22.18 or later, an authorized
+Cloudflare account with Containers, and the `forsvn.com` zone. From `edge/`:
+
+```sh
+bun install
+node node_modules/cf/bin/cf auth login
+bun run typecheck
+bun run build
+bun run deploy
+```
+
+The provider configuration limits the inspector to one `lite` container. It
+sleeps after five idle minutes. The Worker replaces the client-address header
+before private ingress; `METAPREV_PRIVATE_EDGE=on` trusts that header only in
+this private deployment. Standalone servers must leave that setting off.
+`bun test/deployment.ts`, run from `site/`, verifies both address policies.
+
+The first deployment keeps indexing off until the domain, HTTPS, form, metadata,
+and image responses are checked. Cloudflare operational logs and traces sample
+one percent of Worker requests and remove URL query strings. The application
+does not log submitted URL bodies or store reports. A container rollout can
+expire existing image IDs; inspect again to refresh them.
+
+The root Dockerfile contains only the website runtime and shared parser source.
+Local credentials, tests, build tools, and review captures are excluded. The
+published CLI package remains separate from this hosting configuration.

@@ -6,7 +6,7 @@ Public launch work resumed on 2026-11-06 with Cloudflare selected by Hung. The e
 ([draft PR #8](https://github.com/forsvn-labs/metaprev/pull/8)). Website and
 messaging source merged; no public backend or later package release is established.
 
-Next action: Improve the public inspector and prepare Cloudflare hosting, authorized by Hung on 2026-11-06. Verify access and deployment prerequisites before launch.
+Next action: Restore Cloudflare Containers access, then deploy and verify `metaprev.forsvn.com`. Hung authorized deployment on 2026-11-06.
 
 ## Current state
 
@@ -16,7 +16,7 @@ Next action: Improve the public inspector and prepare Cloudflare hosting, author
 ## Gates
 
 - Cloudflare hosting is authorized as of 2026-11-06; verify access, costs, and operational settings before deployment.
-- Keep PR #8 in draft, public indexing off, and FORSVN's project link on GitHub during the hold.
+- Deployment hold lifted by Hung on 2026-11-06. Keep public indexing off until live acceptance passes; PR #8 remains historical draft context.
 - If resumed, confirm hosting, HTTPS, edge per-client limits, and operational log settings; verify inspection, image delivery, and the HTML form before indexing or changing the project link.
 - A multi-process host needs shared edge limits; request counters and image cache are process-local.
 - Advertising needs a publisher account and a separate owner decision after the tool is live.
@@ -28,6 +28,9 @@ Next action: Improve the public inspector and prepare Cloudflare hosting, author
 - Historical release gaps and deferred outcomes remain in [docs/progress-log.md](docs/progress-log.md); none are active commitments.
 
 ## 2026-11-06
+
+- Deployment to `metaprev.forsvn.com` is authorized. DNS and Workers reads succeeded through Executor, but Containers returned HTTP 401. CLI fallback has no login. No public deployment completed.
+- Recovered hosting source from PR #8 into the current checkout. Docker is running; edge typecheck/build and the Linux container build passed. Verified 32 security tests, 7 client-limit checks, and 42 container HTTP checks including live external inspection. Evidence: ignored `site/artifacts/deployment/results.json` and `site/artifacts/container-http/results.json`.
 
 - Cloudflare access repaired in Executor: replaced live full-schema discovery with a bundled 72-path catalog (126 tools). Type checks, reference validation, tool discovery and a real read-only account request passed. Credentials and mutation approval rules were retained. Hosting deployment itself is still pending.
 

@@ -1,0 +1,10 @@
+**/.git
+**/node_modules
+**/.cloudflare
+**/.wrangler
+**/artifacts
+**/.env
+**/.env.*
+**/test
+**/dist
+**/.DS_Store
