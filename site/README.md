@@ -105,3 +105,9 @@ Verification: `bun test site/edge/test/free-fetch.test.ts site/test/secure.test.
 from the repository root; `BASE=https://metaprev.forsvn.com bun site/test/http.ts`
 and `BASE=https://metaprev.forsvn.com bun site/test/browser.ts` exercise the live app.
 The old Dockerfile remains for local/container users but is not publicly deployed.
+
+The free Worker stops streaming at the closing HTML head, including when a large
+body follows or Content-Length describes the full document. The 128 KiB head
+limit and URL/DNS checks remain in force. The primary text font is preloaded.
+Inspection JSON may be compressed but remains no-store/noindex; HTML keeps
+no-transform to prevent automatic analytics injection.

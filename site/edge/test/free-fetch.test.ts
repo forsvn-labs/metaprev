@@ -42,3 +42,14 @@ test('rejects SVG as image',async()=>{
 test('rejects redirect loops',async()=>{
  await expect(fetchRemote('https://example.com','html',mock(()=>new Response(null,{status:302,headers:{location:'https://example.com'}})))).rejects.toThrow()
 })
+// Performance regression: a large body must not hide an early, small head.
+test('reads only the head even when the declared HTML body exceeds the limit',async()=>{
+ const result=await fetchRemote('https://example.com','html',mock(()=>new Response('<head><title>Early</title></head>'+ 'x'.repeat(200000),{headers:{'content-type':'text/html','content-length':'200032'}})))
+ expect(new TextDecoder().decode(result.body)).toBe('<head><title>Early</title></head>')
+})
+test('head boundary split between chunks still stops before a large body',async()=>{
+ const enc=new TextEncoder()
+ const stream=new ReadableStream({start(c){c.enqueue(enc.encode('<head><title>Split</title></he'));c.enqueue(enc.encode('ad>'+ 'x'.repeat(200000)));c.close()}})
+ const result=await fetchRemote('https://example.com','html',mock(()=>new Response(stream,{headers:{'content-type':'text/html'}})))
+ expect(new TextDecoder().decode(result.body)).toBe('<head><title>Split</title></head>')
+})

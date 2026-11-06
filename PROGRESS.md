@@ -5,6 +5,7 @@ Updated: 2026-11-07 · Stage: live · Health: On track
 ## Shipped
 
 - **Public Open Graph review** (2026-11-07): live at https://metaprev.forsvn.com, alongside the existing CLI.
+- **Faster inspection** (2026-11-07): accepts an early HTML head on large pages, preloads its text font and compresses report JSON.
 - Cloudflare Free Worker and static pages replace the proposed Containers deployment.
 - Reports show previews, observed tags, feedback and repair snippets. HTML form works without JavaScript.
 
@@ -13,19 +14,20 @@ Updated: 2026-11-07 · Stage: live · Health: On track
 - Observe real search demand and free-tier availability. No revenue or traffic forecast is established.
 - Ads remain off until a publisher/site and placements are approved.
 
-Next action: Use the public tool and collect actual failure cases before adding infrastructure.
+Next action: Monitor real inspection failures and traffic before adding infrastructure.
 
 <details><summary>Technical details</summary>
 
 | Item | State | Evidence | Date |
 | --- | --- | --- | --- |
-| Public Open Graph review | Shipped | https://metaprev.forsvn.com — deployment 0f2f6799-b230-4725-b1ce-edcc8bb158e9; live checks passed | 2026-11-07 |
+| Faster inspection | Shipped | Live HTTP/browser checks passed; sample JSON response 52,694 → 7,732 transferred bytes with gzip; reports remain no-store | 2026-11-07 |
+| Public Open Graph review | Shipped | https://metaprev.forsvn.com — deployment 232b9841-5179-493a-9327-9ebcc4f03eb7; live checks passed | 2026-11-07 |
 
 
-44 security/fetch tests, both typechecks, and 42 live HTTP checks passed.
+46 security/fetch tests, both typechecks, and 42 live HTTP checks passed.
 All 56 live browser checks passed. Acceptance covers four widths, metadata/JSON copy, platform tabs,
 unsafe URL rejection, image delivery and no-JavaScript submission. Evidence is in
-ignored `site/artifacts/free-browser/`; screenshots were captured with Cap.
+ignored `site/artifacts/speed-browser/`; screenshots were captured with Cap.
 Deployment is `metaprev-free`; `site/README.md` documents limits and reproduction.
 HTML opts out of automatic Cloudflare analytics injection; JS/CSS compression was verified.
 No paid plan was purchased. No Containers, database or paid bindings are configured.

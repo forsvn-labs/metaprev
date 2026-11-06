@@ -1,7 +1,7 @@
 import { InspectionError, parseTarget, assertPublicAddress } from '../../lib/url-policy.ts'
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
 export async function boundedBody(response: Response, max: number, signal: AbortSignal, head = false): Promise<Uint8Array> {
-  if (Number(response.headers.get('content-length')) > max) { await response.body?.cancel(); throw new InspectionError('Response exceeds the free web limit. Use the CLI.') }
+  if (!head && Number(response.headers.get('content-length')) > max) { await response.body?.cancel(); throw new InspectionError('Response exceeds the free web limit. Use the CLI.') }
   const reader = response.body?.getReader()
   if (!reader) return new Uint8Array()
   const chunks: Uint8Array[] = []; let size=0; let tail=''
@@ -14,10 +14,23 @@ export async function boundedBody(response: Response, max: number, signal: Abort
         signal.addEventListener('abort',abort,{once:true})
       })]).finally(()=>signal.removeEventListener('abort',abort))
       if (part.done) break
-      size+=part.value.length
-      if(size>max) throw new InspectionError('Response exceeds the free web limit. Use the CLI.')
-      chunks.push(part.value)
-      if(head){const text=tail+new TextDecoder().decode(part.value);tail=text.slice(-32);if(/<\/head\s*>/i.test(text))break}
+      let chunk = part.value
+      let complete = false
+      if (head) {
+        // Single-byte decoding preserves byte offsets for this ASCII delimiter.
+        // Scan only the remaining allowance, never an unbounded response chunk.
+        const text = tail + new TextDecoder('latin1').decode(chunk.subarray(0, max - size))
+        const end = /<\/head\s*>/i.exec(text)
+        if (end) {
+          chunk = chunk.subarray(0, end.index + end[0].length - tail.length)
+          complete = true
+        }
+        tail = text.slice(-32)
+      }
+      size += chunk.length
+      if (size > max) throw new InspectionError('Response exceeds the free web limit. Use the CLI.')
+      chunks.push(chunk)
+      if (complete) break
     }
   } finally { void reader.cancel().catch(()=>{}) }
   const body=new Uint8Array(size);let offset=0

@@ -20,7 +20,7 @@ function allowed(key:string){
 export default {
   async fetch(request:Request,env:Cloudflare.Env):Promise<Response>{
     const url=new URL(request.url)
-    const json=(data:unknown,status=200)=>Response.json(data,{status,headers:privateHeaders})
+    const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{...privateHeaders,'Cache-Control':'no-store'}})
     const html=(body:string,status=200)=>new Response(page({title:'Check a URL · Metaprev',body,privatePage:true}),{status,headers:{...privateHeaders,'Content-Type':'text/html; charset=utf-8'}})
     if(url.pathname==='/api/image'){
       if(!['GET','HEAD'].includes(request.method))return json({ok:false,error:'Use GET.'},405)

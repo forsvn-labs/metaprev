@@ -1,5 +1,10 @@
 # metaprev changelog
 
+## 2026-11-07 — Performance update
+
+- Read the HTML head without downloading a large body or rejecting its full Content-Length.
+- Compressed private inspection JSON and preloaded the primary UI font.
+
 ## 2026-11-07 — Public web app
 
 - Published Open Graph review, feedback and repair UI at https://metaprev.forsvn.com.
