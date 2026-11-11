@@ -314,7 +314,9 @@ No public load test was performed. Evidence is in `site/artifacts/capacity/`.
 
 Repository merge remains blocked: GitHub connector returned `403 Resource not
 accessible by integration`. No alternate identity or access route was used.
-PR #16 is mergeable with no reported checks or review decision. Owner edits to
+PR #16 initially reported no checks. At handoff, the repository’s automatic
+CodeRabbit check is in progress and no review decision is reported. This child
+does not poll or watch it; the parent must settle checks before merging. Owner edits to
 AdSense/Google readiness remain uncommitted and excluded from this PR. Google
 reconnection is still required; site approval/consent/placement gates remain.
 No ads, account changes, physical-device work or npm release occurred.
