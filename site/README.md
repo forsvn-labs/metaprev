@@ -142,3 +142,12 @@ and rollback instructions are in [state machines](../docs/state-machines.md).
 Guide articles include a voluntary GitHub Sponsors call to action using the
 existing owner destination. Payments and amount selection happen on GitHub;
 no checkout, tracking, benefits or revenue claims are added to Metaprev.
+
+
+The free web deployment rejects inspection of its own `metaprev.forsvn.com`
+hostname with explicit CLI guidance, including redirects back to that host.
+The observed self-fetch returned upstream 522; the inspector does not retry
+through an asset binding or bypass network checks. Other public targets retain
+the existing checks. Test this recovery path with
+`bash site/test/self-host-browser.sh` from the repository root while the edge
+local server is running, or set `BASE=https://metaprev.forsvn.com` after release.
