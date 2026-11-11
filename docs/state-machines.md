@@ -393,3 +393,14 @@ Only ASSETS is bound. No paid resource, ads or account settings changed.
 The source is live; PR integration remains subject to checks, not overridden.
 Owner PROGRESS content remains byte-for-byte untouched by this task; the parent
 can add this release evidence separately from the owner's AdSense update.
+
+
+Integration receipt: PR #17 merged normally as
+`ef8558874338286370317c6a751fd7eec33e6832`, without overrides. Head
+`29a8adb4724f85e955a721d85c9455b8fd917bbb` had one completed neutral CodeRabbit
+check and no reported review decision. The merged tree exactly matches that
+head; the deployed runtime source is unchanged by its documentation commit.
+Main was fast-forwarded. Safe deletion of this task's local
+`fix/self-host-inspection` branch also refused squash ancestry; retained without
+force, as required. Both retained branches contain integrated trees, not missing
+implementation. Browser sessions and the local dev server were closed.
