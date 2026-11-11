@@ -12,7 +12,7 @@ export const KNOWN_TWITTER_CARDS = [CARD_SUMMARY, CARD_SUMMARY_LARGE_IMAGE, 'app
 export const RENDERED_TWITTER_CARDS: ReadonlySet<string> = new Set([CARD_SUMMARY, CARD_SUMMARY_LARGE_IMAGE])
 
 export function isKnownTwitterCard(value: string): boolean {
-  return (KNOWN_TWITTER_CARDS as readonly string[]).includes(value)
+  return KNOWN_TWITTER_CARDS.some((card) => card === value)
 }
 
 // ── canonical input fallback policy ───────────────────────────────────────

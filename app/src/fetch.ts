@@ -24,16 +24,16 @@ function tlsOpt(url: string, opts: FetchOpts): { rejectUnauthorized: false } | u
   return opts.insecure || isLocalUrl(url) ? { rejectUnauthorized: false } : undefined
 }
 
-function timeoutError(err: unknown, ctrl: AbortController, timeoutMs: number): Error {
-  if (ctrl.signal.aborted || (err as Error)?.name === 'AbortError') {
+function timeoutError(err: Error, ctrl: AbortController, timeoutMs: number): Error {
+  if (ctrl.signal.aborted || err.name === 'AbortError') {
     return new Error(`timed out after ${Math.round(timeoutMs / 1000)}s`)
   }
-  return err as Error
+  return err
 }
 
 // Read a response body up to a byte cap, cancelling the stream once exceeded. Returns the
 // bytes (sliced to the cap) plus whether more data was left unread.
-export async function readCappedBytes(res: Response, maxBytes: number): Promise<{ bytes: Buffer; truncated: boolean }> {
+export async function readCappedBytes(res: Pick<Response, 'body' | 'headers' | 'arrayBuffer'>, maxBytes: number): Promise<{ bytes: Buffer; truncated: boolean }> {
   const body = res.body
   if (!body) {
     // Null-body path: there is no stream to cap mid-flight, so the only safe bound
@@ -271,7 +271,7 @@ export async function fetchPage(url: string, opts: FetchOpts = {}, timeoutMs = 1
     const html = await readHtmlUntilHead(res, MAX_HTML_BYTES)
     return { finalUrl: res.url || url, status: res.status, html }
   } catch (err) {
-    throw timeoutError(err, ctrl, timeoutMs)
+    throw timeoutError(err instanceof Error ? err : new Error(String(err)), ctrl, timeoutMs)
   } finally {
     clearTimeout(timer)
   }
@@ -330,13 +330,13 @@ export async function probeImage(url: string, base: string, opts: ProbeOpts = {}
       const dims = imageSize(buf)
       probe.width = dims.width
       probe.height = dims.height
-      const detectedMime: Record<string, string> = {
+      const detectedMime = new Map(Object.entries({
         avif: 'image/avif', gif: 'image/gif', jpg: 'image/jpeg', png: 'image/png',
         svg: 'image/svg+xml', webp: 'image/webp',
-      }
-      probe.detectedContentType = dims.type ? detectedMime[dims.type] : undefined
+      }))
+      probe.detectedContentType = dims.type ? detectedMime.get(dims.type) : undefined
     } catch (err) {
-      probe.error = `Could not read image dimensions: ${(err as Error).message}`
+      probe.error = `Could not read image dimensions: ${err instanceof Error ? err.message : String(err)}`
     }
     // Only build the (potentially multi-MB) base64 data URI when the caller actually
     // renders the HTML preview. issues / facts / --json never embed the image, so
@@ -358,7 +358,7 @@ export async function probeImage(url: string, base: string, opts: ProbeOpts = {}
       resolved,
       status: 0,
       ok: false,
-      error: timeoutError(err, ctrl, timeoutMs).message,
+      error: timeoutError(err instanceof Error ? err : new Error(String(err)), ctrl, timeoutMs).message,
     }
   } finally {
     clearTimeout(timer)

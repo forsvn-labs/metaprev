@@ -19,7 +19,9 @@ function parseIpv4(host: string): [number, number, number, number] | undefined {
   if (!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return undefined
   const parts = host.split('.').map(Number)
   if (parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255)) return undefined
-  return parts as [number, number, number, number]
+  const [a, b, c, d] = parts
+  if (a === undefined || b === undefined || c === undefined || d === undefined) return undefined
+  return [a, b, c, d]
 }
 
 function ipv4Scope([a, b]: [number, number, number, number]): HostScope {
@@ -52,9 +54,9 @@ function ipv6Scope(host: string): HostScope {
   if (/^f[cd][0-9a-f]{0,2}:/.test(h)) return 'private' // unique-local fc00::/7
   if (/^fe[89ab][0-9a-f]:/.test(h)) return 'private' // link-local fe80::/10
   if (/^ff[0-9a-f]{2}:/.test(h)) return 'reserved' // multicast ff00::/8
-  if (/^2001:db8:/.test(h)) return 'reserved' // documentation
-  if (/^100::/.test(h)) return 'reserved' // discard-only
-  if (/^64:ff9b:/.test(h)) return 'reserved' // NAT64 well-known prefix (translation infra)
+  if (h.startsWith('2001:db8:')) return 'reserved' // documentation
+  if (h.startsWith('100::')) return 'reserved' // discard-only
+  if (h.startsWith('64:ff9b:')) return 'reserved' // NAT64 well-known prefix (translation infra)
   return 'public'
 }
 

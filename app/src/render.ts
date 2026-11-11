@@ -183,7 +183,7 @@ export function renderHtml(report: Report): string {
     .map(
       (i, index) => `
         <li class="issue issue--${i.level}">
-          <span class="issue__icon" aria-hidden="true">${ISSUE_ICONS[i.level as Level]}</span>
+          <span class="issue__icon" aria-hidden="true">${ISSUE_ICONS[i.level]}</span>
           <div class="issue__body">
             <span class="issue__field">${String(index + 1).padStart(2, '0')} · ${escapeHtml(i.level)} · ${escapeHtml(i.field)}</span>
             <p class="issue__msg">${escapeHtml(i.message)}</p>
@@ -1171,6 +1171,7 @@ function cardMock(label: string, variant: 'fb' | 'x' | 'li' | 'dc', p: CardParts
 }
 
 type CopyTarget = 'issues' | 'facts' | 'snippet' | 'repair' | 'agent'
+type CopyPayloads = Partial<Record<CopyTarget, string>>
 
 function copyButton(target: CopyTarget, label: string, primary = false): string {
   return `<button class="copy-btn${primary ? ' copy-btn--primary' : ''}" type="button" data-copy-target="${target}">
@@ -1194,8 +1195,8 @@ function count(s: string | undefined): string | undefined {
   return `${s.length} ch`
 }
 
-function buildCopyPayloads(report: Report, facts: Fact[]): Record<string, string> {
-  const payloads: Record<string, string> = {}
+function buildCopyPayloads(report: Report, facts: Fact[]): CopyPayloads {
+  const payloads: CopyPayloads = {}
 
   if (report.issues.length > 0) {
     payloads.issues = buildFindingsText(report)
@@ -1212,7 +1213,7 @@ function buildCopyPayloads(report: Report, facts: Fact[]): Record<string, string
   return payloads
 }
 
-function escapeForScriptJson(payload: unknown): string {
+function escapeForScriptJson(payload: CopyPayloads): string {
   return JSON.stringify(payload)
     .replace(/&/g, '\\u0026')
     .replace(/</g, '\\u003c')

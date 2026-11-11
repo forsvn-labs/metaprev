@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { fetchPage, probeImage } from '../src/fetch.ts'
 
@@ -27,7 +28,7 @@ function pngBytes(width: number, height: number): Buffer {
 
 function pngHeader(width: number, height: number): ArrayBuffer {
   const bytes = pngBytes(width, height)
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
+  return Uint8Array.from(bytes).buffer
 }
 
 function cleanHtml(): string {
@@ -222,8 +223,8 @@ beforeAll(async () => {
     rawServer.once('error', reject)
     rawServer.listen(0, '127.0.0.1', () => resolve())
   })
-  const addr = rawServer.address()
-  if (!addr || typeof addr === 'string') throw new Error('expected TCP address')
+  // SAFETY: listen above completed with a TCP port and IP host, not a Unix socket.
+  const addr = rawServer.address() as AddressInfo
   rawBase = `http://127.0.0.1:${addr.port}`
 })
 

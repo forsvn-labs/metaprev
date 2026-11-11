@@ -64,3 +64,16 @@ safety proof. The parser remains a small metadata extractor, not a full HTML
 parser. Cancellation depends on the runtime signalling disconnects; existing
 fetch deadlines still apply. Edge image cache expiry/location misses and global
 free-tier capacity remain deployment constraints.
+
+## Lint and error-boundary cleanup (2026-11-11)
+
+Failure cases checked before cleanup: string/null fetch rejections losing their
+message or throwing during error handling; ASCII control runs leaking into repair
+snippets; altered printable Unicode or attribute escaping. The two non-Error
+rejection tests failed before the fix. Existing CLI, entity-collision, host policy,
+copy-payload and null-body tests protect the type-only changes.
+
+Repeat with `cd app && bun run lint && bun test && bun run typecheck`.
+Lint rules are unchanged. The response reader accepts only the three response
+members it uses; metadata maps and copy targets have explicit value contracts.
+The TCP-address test assertion follows a completed listen on an IP and port.

@@ -185,12 +185,12 @@ describe('host classification', () => {
 })
 
 describe('bounded null-body reads', () => {
-  function nullBodyResponse(headers: Record<string, string>, body?: ArrayBuffer): Response {
-    return { body: null, headers: new Headers(headers), arrayBuffer: async () => body ?? new ArrayBuffer(0) } as unknown as Response
+  function nullBodyResponse(headers: Record<string, string>, body?: ArrayBuffer): Pick<Response, 'body' | 'headers' | 'arrayBuffer'> {
+    return { body: null, headers: new Headers(headers), arrayBuffer: async () => body ?? new ArrayBuffer(0) }
   }
 
   test('reads a small declared null-body response within the cap', async () => {
-    const data = new TextEncoder().encode('hello').buffer as ArrayBuffer
+    const data = new TextEncoder().encode('hello').buffer
     const { bytes, truncated } = await readCappedBytes(nullBodyResponse({ 'content-length': '5' }, data), 1024)
     expect(bytes.toString()).toBe('hello')
     expect(truncated).toBe(false)
@@ -739,4 +739,13 @@ describe('repair output', () => {
     expect(snippet).toContain('Add the preferred absolute public HTTP(S) URL')
     expect(snippet).toContain('name="twitter:card" content="player"')
   })
+})
+
+
+test('repair snippets collapse control runs without changing printable Unicode or escaping', () => {
+  const controls = String.fromCharCode(...Array.from({ length: 32 }, (_, i) => i), 127)
+  const title = `A${controls}B é😀 &<>"`
+  const snippet = buildMetaSnippet(report({ finalUrl: 'https://example.com', meta: { ogTitle: title } }))
+  expect(snippet).toContain('content="A B é😀 &amp;&lt;&gt;&quot;"')
+  for (const char of controls) expect(snippet).not.toContain(char === '\n' ? `A${char}B` : char)
 })
