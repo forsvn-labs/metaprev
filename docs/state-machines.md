@@ -324,3 +324,15 @@ No ads, account changes, physical-device work or npm release occurred.
 Observed limit: inspection of the Worker's own hostname returned an upstream
 522 as a private 422. The external acceptance targets passed. This change does
 not bypass Workers routing/network isolation or claim all targets are reachable.
+
+## Guide support publication checks (2026-11-11 follow-up)
+
+The callout requires a resolved guide and a configured, validated support URL.
+Unknown guide routes return 404 without a guide-support callout. Empty support
+configuration hides it. The browser acceptance now scopes footer and callout
+links separately, avoiding ambiguous locators when both exist.
+Tests cover explicit configured and empty settings; the suite also passed with
+the actual support JSON temporarily blank and restored. The browser check failed
+before the fix with two matching links and passed after it at both widths.
+Evidence: `site/artifacts/capacity/review-followup/`. Run `bun run test` in
+`site/`, and the public guide acceptance command in `site/cms/README.md`.
