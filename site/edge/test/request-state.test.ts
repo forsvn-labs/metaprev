@@ -29,3 +29,16 @@ test('failures preserve private response policy and allow correction', async () 
  expect((await send(request('{}',{origin:'https://evil.example'}))).status).toBe(403)
  expect((await send(new Request('https://metaprev.forsvn.com/api/inspect'))).status).toBe(405)
 })
+test('self-host rejection stays private, explains recovery, and releases permit',async()=>{
+ for(const route of ['/api/inspect','/inspect']) {
+  const response=await send(new Request(`https://metaprev.forsvn.com${route}`,{
+   method:'POST',headers:{'content-type':'application/json','CF-Connecting-IP':crypto.randomUUID()},
+   body:JSON.stringify({url:'https://metaprev.forsvn.com/?next=http://127.0.0.1'}),
+  }))
+  expect(response.status).toBe(422)
+  expect(response.headers.get('cache-control')).toContain('no-store')
+  expect(response.headers.get('x-robots-tag')).toContain('noindex')
+  expect(await response.text()).toContain('cannot inspect its own hosted pages')
+ }
+ expect((await send(request('{}'))).status).toBe(400)
+})

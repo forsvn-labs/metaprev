@@ -104,3 +104,35 @@ test('image byte envelope accepts one MiB and rejects the next byte',async()=>{
   else await expect(run).rejects.toThrow('free web limit')
  }
 })
+
+// Same-zone Worker routes cannot be fetched recursively. Reject explicitly,
+// including redirects and images, without a DNS/network/binding fallback.
+for (const url of ['https://metaprev.forsvn.com/', 'http://METAPREV.FORSVN.COM/?url=http://127.0.0.1', 'https://metaprev.forsvn.com./guides', 'https://metaprev.forsvn.com:443/#x']) {
+ for (const kind of ['html','image'] as const) test(`self-host ${kind} is explicit and bounded: ${url}`, async()=>{
+  let calls=0
+  await expect(fetchRemote(url,kind,async()=>{calls++;throw Error('unexpected network')})).rejects.toThrow('cannot inspect its own hosted pages')
+  expect(calls).toBe(0)
+ })
+}
+test('redirect to self-host ends before another DNS or target fetch',async()=>{
+ let calls=0
+ await expect(fetchRemote('https://example.com','html',mock(()=>{
+  calls++
+  return new Response(null,{status:302,headers:{location:'https://metaprev.forsvn.com./?next=https://example.com'}})
+ }))).rejects.toThrow('cannot inspect its own hosted pages')
+ expect(calls).toBe(1)
+})
+test('self-host lookalike still passes through DNS screening',async()=>{
+ let calls=0
+ await expect(fetchRemote('https://metaprev.forsvn.com.evil.example','html',async()=>{
+  calls++;return Response.json({Status:0,Answer:[{type:1,data:'127.0.0.1'}]})
+ })).rejects.toThrow()
+ expect(calls).toBe(2)
+})
+for(const url of ['https://user:pass@metaprev.forsvn.com','https://metaprev.forsvn.com@127.0.0.1','https://metaprev.forsvn.com:8443','https://127.0.0.1/?host=metaprev.forsvn.com']) {
+ test(`self-host text cannot bypass URL policy: ${url}`,async()=>{
+  let calls=0
+  await expect(fetchRemote(url,'html',async()=>{calls++;throw Error()})).rejects.toThrow()
+  expect(calls).toBe(0)
+ })
+}

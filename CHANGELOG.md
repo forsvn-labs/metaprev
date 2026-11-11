@@ -1,5 +1,12 @@
 # metaprev changelog
 
+## 2026-11-11 — Clear self-host inspection limit
+
+- The free web inspector explains its own-host limitation and suggests the CLI or another URL.
+- Reject own-host redirects without recursive fetches or network-policy exceptions.
+- Verified the live private error, browser correction flow, public indexing and 60 HTTP checks.
+- Deployment instructions now preserve indexing when the deploy command rebuilds assets.
+
 ## 2026-11-11 — Capacity recovery and guide support
 
 - Distinguish caller rate limits from busy service capacity, with retry guidance.
@@ -7,7 +14,7 @@
 - Add explicit manual recovery for unavailable previews without automatic refetch.
 - Add a voluntary GitHub Sponsors call to action to all ten guides, without tracking.
 - Verified the free Worker deployment, 60 live HTTP checks, browser flows and image delivery.
-- Source is pushed in PR #16; repository merge is blocked by GitHub integration access.
+- PR #16 is merged and live; the earlier integration-access block was resolved through the authorized CLI.
 
 ## 2026-11-11 — Bounded public inspection
 

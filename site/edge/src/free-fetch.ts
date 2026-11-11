@@ -47,6 +47,11 @@ export async function fetchRemote(input:string, kind:'html'|'image', request:Fet
     signal.throwIfAborted()
     if(visited.has(url.href))throw new InspectionError('The page redirects in a loop.')
     visited.add(url.href)
+    // This deployment cannot fetch its own public hostname (observed HTTP 522).
+    // Fail before DNS at every hop; never recurse or forward input to ASSETS.
+    if(url.hostname.toLowerCase().replace(/\.$/,'')==='metaprev.forsvn.com') {
+      throw new InspectionError('The web inspector cannot inspect its own hosted pages on this deployment. Use the local Metaprev CLI for this URL, or enter another public URL.')
+    }
     // Cloudflare's native fetch supplies the network isolation boundary. This
     // extra DNS check rejects private answers before fetch; it is not DNS pinning.
     const answers=await Promise.all(['A','AAAA'].map(async type=>{

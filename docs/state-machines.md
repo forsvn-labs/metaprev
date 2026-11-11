@@ -1,6 +1,6 @@
 # State machines
 
-Audit baseline: `16f0f02` on 2026-11-11. Target: Cloudflare Free Worker
+Audit baseline: `e4fafc9` on 2026-11-11. Target: Cloudflare Free Worker
 `metaprev-free`, static guides, and the browser inspector. Fixes are in this PR.
 Method: executed failures (E1), code paths (E2), deterministic clocks, and independent
 request streams with barriers. No production data writes or migrations.
@@ -10,7 +10,7 @@ request streams with barriers. No production data writes or migrations.
 | Machine | States | Confirmed | Fixed | Open issues |
 | --- | --- | --- | --- | --- |
 | admission | 3 | 2 | 2 | 0 |
-| inspection | 3 | 0 | 0 | 0 |
+| inspection | 3 | 1 | 1 | 0 |
 | image-cache | 4 | 2 | 2 | 0 |
 | browser-inspection | 4 | 1 | 1 | 0 |
 | guide-publication | 2 | 0 | 0 | 0 |
@@ -95,6 +95,7 @@ Bypasses: none inside the Worker; independent isolates are independent authoriti
 | `received` | accept | same origin, valid method, permit | `running` | Read request | `site/edge/src/index.ts` |
 | `received` | refuse | origin/method/admission rejects | `finished` | Private error | `site/edge/src/index.ts` |
 | `running` | finish | bounded inspection completes | `finished` | Private report; release | `site/edge/src/index.ts` |
+| `running` | reject-self-host | normalized exact owned hostname at any fetch hop | `finished` | Explicit private 422; release; no fallback | `site/edge/src/free-fetch.ts` |
 | `running` | fail-or-cancel | exception or signal | `finished` | Private error; release | `site/edge/src/index.ts` |
 
 #### Invariants
@@ -102,6 +103,7 @@ Bypasses: none inside the Worker; independent isolates are independent authoriti
 | ID | Invariant | Enforced by | Evidence |
 | --- | --- | --- | --- |
 | INV-04 | Cancellation cannot hold request slots indefinitely | Signal-aware reads and finally | `site/edge/test/capacity.test.ts` |
+| INV-10 | Owned-host failure is explicit and causes no recursive or binding fetch | Exact hostname guard at every hop | `site/edge/test/free-fetch.test.ts` |
 | INV-05 | Untrusted URLs never bypass public URL/DNS/redirect checks | Every remote hop screened | `site/edge/src/free-fetch.ts` |
 
 Timers: request body 5 seconds/16 KiB; HTML 10 seconds/128 KiB;
@@ -240,6 +242,7 @@ matches existing `site/data/support.json` and `.github/FUNDING.yml`.
 | F-02 | Low | Fixed | admission | Full slots reported caller abuse, breaking INV-02 | `test: independent requests occupy four slots; overflow is retryable service capacity` | I-01 |
 | F-03 | Medium | Fixed | image-cache | Cache read errors escaped private handler, breaking INV-06 | `test: cache failures return private 503 without exposing error or fetching target` | I-02 |
 | F-04 | Medium | Fixed | image-cache | Stalled cache work had no deadline, breaking INV-06 | `test: stalled cache lookup has a deadline and no unsafe remote fallback` | I-02 |
+| F-06 | Low | Fixed | inspection | Own-host 522 gave no actionable deployment explanation, weakening INV-10 | `test: redirect to self-host ends before another DNS or target fetch` | I-04 |
 | F-05 | Low | Fixed | browser-inspection | Failed images had no explicit return-to-form action, weakening INV-08 | `site/test/capacity-browser.sh` | I-03 |
 
 ## Issues
@@ -248,6 +251,7 @@ matches existing `site/data/support.json` and `.github/FUNDING.yml`.
 | --- | --- | --- | --- | --- | --- |
 | I-01 | P2 | Fixed | F-01, F-02 | Distinguish caller limits from capacity | https://github.com/forsvn-labs/metaprev/pull/16 |
 | I-02 | P2 | Fixed | F-03, F-04 | Bound cache failure and cancellation | https://github.com/forsvn-labs/metaprev/pull/16 |
+| I-04 | P3 | Fixed | F-06 | Explain self-host deployment limit without network fallback | https://github.com/forsvn-labs/metaprev/pull/17 |
 | I-03 | P3 | Fixed | F-05 | Explicit preview recovery | https://github.com/forsvn-labs/metaprev/pull/16 |
 
 ## Fix log
@@ -336,3 +340,56 @@ the actual support JSON temporarily blank and restored. The browser check failed
 before the fix with two matching links and passed after it at both widths.
 Evidence: `site/artifacts/capacity/review-followup/`. Run `bun run test` in
 `site/`, and the public guide acceptance command in `site/cms/README.md`.
+
+
+## Self-host follow-up (2026-11-11)
+
+Live baseline reproduced once: POST of `https://metaprev.forsvn.com/` returned
+private 422 with upstream HTTP 522. The deployment uses a Custom Domain, not a
+route; Cloudflare's documented same-zone route restriction alone does not prove
+the cause. No claim of unavailable remote proof is made. The exact owned hostname
+(case-insensitive, with a final DNS dot removed) now returns actionable CLI
+and alternate-URL guidance before DNS, for HTML, images and redirect hops.
+Credentials, unusual ports and private IPs are still rejected by parseTarget first.
+Other names still undergo DNS screening. No new binding, recursive request,
+automatic retry, asset fallback or network-policy exception was added.
+
+E1: nine cases failed before the fix and pass after it. Neighbor tests cover
+lookalikes with private DNS, credentials, query strings, standard/unusual ports,
+private host confusion, cancellation, redirects, private headers and permit release.
+Artifacts: ignored `site/artifacts/self-host/` contains red/green output, baseline
+HTTP body/headers, gate logs, Cap before/after captures and browser output.
+Repeat: `bun test site/edge/test/free-fetch.test.ts site/edge/test/request-state.test.ts`;
+start `cd site/edge && bun run dev`, then `bash site/test/self-host-browser.sh`.
+The isolated browser verifies rejection, mobile layout, private HTML-form errors,
+manual correction to example.com and no stored URLs. This is not a load test.
+
+PR #12 inspection: the draft remains conflicting and mixes local Node compression,
+parser accuracy, video declarations, unfinished separate-X-image tests, ads and
+optional analytics. The deployed Worker already has byte/deadline/cancellation
+bounds and explicitly labels unfetched X overrides. Parser fidelity and video
+coverage are not a demonstrated access, execution or resource-bound escape;
+no high-risk missing fix was established in this focused comparison. Do not merge
+its ads/analytics or obsolete server changes as a capacity fix. PR #11 modifies
+shared page/server paths and ad/consent assets; it remains an unmerged readiness
+draft, not an authority to enable ads. Neither draft was modified.
+
+Cleanup: the tree of local `fix/free-capacity-recovery` exactly matches squash
+`8a468e5` (`git diff --quiet` exit 0). `git branch -d` refused because ancestry
+is not merged; retained without force deletion. Owner PROGRESS edits remain
+untouched. This follow-up is recorded here rather than mixing those edits into
+its commit. Prior PR #16 is merged and deployed as recorded in PROGRESS; the older
+blocked-merge text above is historical and is superseded by that record.
+
+
+Self-host release evidence: source `8b9bd1da5112797994c024b870ff8bd08477185e`,
+PR #17; final Worker version `bc741c18-4028-461d-b9ab-e64ecb71dc6e`.
+Live self-host API now returns the explicit private 422; isolated live browser
+rejection/correction passes and HTTP acceptance is 60/60. Public homepage robots
+is `index, follow`. Final deployment used `PUBLIC_INDEXING=on bun run deploy`.
+The preceding deploy omitted that environment setting; because deploy rebuilds,
+it was replaced by this indexed deployment and the run instructions were corrected.
+Only ASSETS is bound. No paid resource, ads or account settings changed.
+The source is live; PR integration remains subject to checks, not overridden.
+Owner PROGRESS content remains byte-for-byte untouched by this task; the parent
+can add this release evidence separately from the owner's AdSense update.

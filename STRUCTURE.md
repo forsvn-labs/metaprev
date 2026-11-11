@@ -110,3 +110,6 @@ Start a fresh fixture for each run; commands and limits are in `site/README.md`.
 
 `site/test/support-browser.sh` checks guide-only support rendering;
 `site/test/cache-live.ts` checks one live inspection and opaque image GET/HEAD/miss.
+
+`site/test/self-host-browser.sh` checks the free Worker self-host rejection,
+private HTML-form errors and correction to an external target in an isolated browser.
