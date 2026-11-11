@@ -107,3 +107,6 @@ Required package assets and code remain in Git.
 `site/test/capacity-fixture.ts` and `site/test/capacity-browser.sh` test expired
 previews and non-JSON capacity errors offline through isolated agent-browser.
 Start a fresh fixture for each run; commands and limits are in `site/README.md`.
+
+`site/test/support-browser.sh` checks guide-only support rendering;
+`site/test/cache-live.ts` checks one live inspection and opaque image GET/HEAD/miss.

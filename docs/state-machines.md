@@ -261,7 +261,9 @@ fixes. No separate issue was filed for work already implemented in this PR.
 ## Rollout and recovery
 
 No schema, data migration, account change, paid binding, or CLI change. Deploy
-through the existing free Worker route after tests and normal PR merge. Verify
+through the existing authorized free Worker route after tests. The repository
+merge was attempted but the GitHub connector returned 403; the tested, pushed
+head was deployed independently. Merge remains required to align main with live. Verify
 public guides, one inspection, private image/error headers, and existing HTTP
 acceptance without a public load test. If needed, redeploy prior known-good source
 (`16f0f02`, prior version `44c5a5f5-1665-4597-89b0-66227c0246ab`) on the same route.
@@ -299,3 +301,24 @@ is `BASE=https://metaprev.forsvn.com bun site/test/http.ts`.
 The document checker passes with two expected warnings: browser inspection and
 guide publication permit repeated use and have no terminal state. These warnings
 do not indicate unreachable states.
+
+## Release evidence
+
+2026-11-11: deployed source `5d23277547dbb50660185ac2c6a081b470a3163c` through the
+existing Free route. Worker version `09587359-fea0-4fd0-841f-4b9d40148cb9` serves
+100% of traffic; its only binding is static assets. Live HTTP 60/60, real
+inspection browser, ten-guide support browser, and six cache/image checks pass.
+Repeat the last check with `bun site/test/cache-live.ts`; it makes one external
+inspection and checks private GET/HEAD image delivery plus a missing opaque ID.
+No public load test was performed. Evidence is in `site/artifacts/capacity/`.
+
+Repository merge remains blocked: GitHub connector returned `403 Resource not
+accessible by integration`. No alternate identity or access route was used.
+PR #16 is mergeable with no reported checks or review decision. Owner edits to
+AdSense/Google readiness remain uncommitted and excluded from this PR. Google
+reconnection is still required; site approval/consent/placement gates remain.
+No ads, account changes, physical-device work or npm release occurred.
+
+Observed limit: inspection of the Worker's own hostname returned an upstream
+522 as a private 422. The external acceptance targets passed. This change does
+not bypass Workers routing/network isolation or claim all targets are reachable.

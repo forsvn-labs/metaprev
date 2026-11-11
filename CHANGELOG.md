@@ -1,5 +1,14 @@
 # metaprev changelog
 
+## 2026-11-11 — Capacity recovery and guide support
+
+- Distinguish caller rate limits from busy service capacity, with retry guidance.
+- Bound temporary image cache waits and keep private errors and image facts.
+- Add explicit manual recovery for unavailable previews without automatic refetch.
+- Add a voluntary GitHub Sponsors call to action to all ten guides, without tracking.
+- Verified the free Worker deployment, 60 live HTTP checks, browser flows and image delivery.
+- Source is pushed in PR #16; repository merge is blocked by GitHub integration access.
+
 ## 2026-11-11 — Bounded public inspection
 
 - Deployed bounded metadata parsing and request cancellation to the free Worker.
