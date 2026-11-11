@@ -35,3 +35,32 @@ Recorded before implementation, 2026-10-24.
 - Public builds exclude the editor, proxy, dependencies and raw draft JSON.
 - Desktop/mobile checks verify all guides without JavaScript, support links,
   review dates, sitemap and overflow; write a JSON acceptance artifact.
+
+## Inspection bounds and states (2026-11-11)
+
+Failure cases for this change: long valueless attributes; repeated incomplete
+meta/link/head/title tags; whitespace-only tags; cancellation during request or
+upstream body reads; cleanup that never settles; all four inspection slots busy;
+retry after failure; malformed JSON; corrupt image bytes; cache rejection; and
+concurrent reports with different cache outcomes.
+
+- A tag scan must not retry every suffix of an untrusted attribute or incomplete
+  element. Preserve first-image selection, entity handling and CLI issue/exit contracts.
+- A cancelled request must stop new DNS/upstream calls and release its slot.
+  Body cancellation is best effort and must not delay rejection indefinitely.
+- Cache failure removes the preview URL only. Keep decoded image facts and
+  findings. A corrupt image remains a failed probe. Reports do not share state.
+- All failure responses remain no-store/noindex. Public URL, DNS, redirect,
+  raster-type, byte and time bounds remain in force; there is no DNS-result cache.
+
+Repeat with `bun run test` from `site/`, and `bun test` from `app/`.
+`bash site/test/inspection-browser.sh` from the root checks a running local server
+with isolated agent-browser: private input, correction/retry, repeated submit,
+platform tabs, JSON copy, storage, support link, two widths and the HTML form.
+It uses example.com, with no logged-in browser or third-party account writes.
+
+Limits: this is a targeted regression set, not exhaustive parser or network
+safety proof. The parser remains a small metadata extractor, not a full HTML
+parser. Cancellation depends on the runtime signalling disconnects; existing
+fetch deadlines still apply. Edge image cache expiry/location misses and global
+free-tier capacity remain deployment constraints.

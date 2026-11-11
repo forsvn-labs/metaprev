@@ -41,11 +41,11 @@ export default {
     if(active>=4||!allowed(request.headers.get('CF-Connecting-IP')??'unknown'))return fail('Please wait a minute before inspecting another URL.',429)
     active++
     try{
-      const bytes=await boundedBody(new Response(request.body),16384,AbortSignal.timeout(5000))
+      const bytes=await boundedBody(new Response(request.body),16384,AbortSignal.any([request.signal,AbortSignal.timeout(5000)]))
       const text=new TextDecoder().decode(bytes)
       const input=(request.headers.get('content-type')??'').includes('application/json')?JSON.parse(text):Object.fromEntries(new URLSearchParams(text))
       if(typeof input?.url!=='string'||!input.url.trim()||input.url.length>2048)throw new InspectionError('Enter a public URL.',400)
-      const report=await inspectWith(input.url,(target,{kind})=>fetchRemote(target,kind),async(bytes,type)=>{
+      const report=await inspectWith(input.url,(target,{kind})=>fetchRemote(target,kind,fetch,request.signal),async(bytes,type)=>{
         const id=crypto.randomUUID()
         const cache=await caches.open('metaprev-images')
         await cache.put(new Request(`${url.origin}/api/image?id=${id}`),new Response(bytes,{headers:{'Content-Type':type,'Cache-Control':'public, max-age=300'}}))

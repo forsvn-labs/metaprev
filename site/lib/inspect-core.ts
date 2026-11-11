@@ -33,7 +33,10 @@ export async function inspectWith(input: string, fetchPublic: FetchPage, storeIm
       // Store only verified raster bytes in the temporary image cache. Clients
       // receive an opaque same-origin URL, never an arbitrary proxy URL.
       if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(dimensions.type ?? '')) {
-        previewImage = await storeImage(fetched.body, detectedContentType)
+        // Cache delivery is optional; it is not evidence that the source image
+        // failed. Preserve the verified probe when the edge cache is unavailable.
+        try { previewImage = await storeImage(fetched.body, detectedContentType) }
+        catch { previewImage = null }
       }
     } catch {
       image = { url: meta.ogImage, resolved: meta.ogImage, status: 0, ok: false,

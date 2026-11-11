@@ -1,10 +1,29 @@
 import type { MetaTags } from './types.ts'
 
-const META_RE = /<meta\s+([^>]+?)\/?>/gi
-const TITLE_RE = /<title[^>]*>([\s\S]*?)<\/title>/i
-const LINK_RE = /<link\s+([^>]+?)\/?>/gi
+// Consume each tag/attribute once. Requiring an assignment during the name
+// match retries every suffix of a long valueless attribute (quadratic CPU).
+const ATTR_RE = /(\w[\w:-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g
 
-const ATTR_RE = /(\w[\w:-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g
+function* tagAttributes(html: string, name: 'meta' | 'link'): Generator<string> {
+  const opening = new RegExp(`<${name}(?=\\s)`, 'gi')
+  while (opening.exec(html) !== null) {
+    const end = html.indexOf('>', opening.lastIndex)
+    if (end === -1) return
+    yield html.slice(opening.lastIndex, html[end - 1] === '/' ? end - 1 : end)
+    opening.lastIndex = end + 1
+  }
+}
+
+function elementContent(html: string, name: 'head' | 'title'): string | undefined {
+  const opening = new RegExp(`<${name}`, 'i').exec(html)
+  if (!opening) return undefined
+  const end = html.indexOf('>', opening.index + opening[0].length)
+  if (end === -1) return undefined
+  const start = end + 1
+  const rest = html.slice(start)
+  const closing = new RegExp(`</${name}>`, 'i').exec(rest)
+  return closing ? rest.slice(0, closing.index) : undefined
+}
 
 function attrs(raw: string): Record<string, string> {
   const out: Record<string, string> = {}
@@ -12,7 +31,8 @@ function attrs(raw: string): Record<string, string> {
   ATTR_RE.lastIndex = 0
   while ((m = ATTR_RE.exec(raw)) !== null) {
     const key = m[1]?.toLowerCase()
-    const value = m[2] ?? m[3] ?? m[4] ?? ''
+    const value = m[2] ?? m[3] ?? m[4]
+    if (value === undefined) continue
     if (key) out[key] = decodeEntities(value).trim()
   }
   return out
@@ -67,7 +87,7 @@ function decodeEntities(s: string): string {
 }
 
 export function parseMeta(html: string): MetaTags {
-  const head = extractHead(html)
+  const head = elementContent(html, 'head') ?? html
   const tags: MetaTags = {}
   // Open Graph arrays attach structured properties to the root image they follow.
   // metaprev previews the first image, so later images' dimensions/alt must never
@@ -75,8 +95,8 @@ export function parseMeta(html: string): MetaTags {
   let selectedOgImageIsActive = false
   let pendingStructured: Record<string, string> = {}
 
-  const titleMatch = TITLE_RE.exec(head)
-  if (titleMatch?.[1]) tags.title = decodeEntities(titleMatch[1].trim())
+  const title = elementContent(head, 'title')
+  if (title) tags.title = decodeEntities(title.trim())
 
   const selectImage = (content: string): void => {
     if (!tags.ogImage) {
@@ -92,10 +112,8 @@ export function parseMeta(html: string): MetaTags {
     }
   }
 
-  let m: RegExpExecArray | null
-  META_RE.lastIndex = 0
-  while ((m = META_RE.exec(head)) !== null) {
-    const a = attrs(m[1] ?? '')
+  for (const raw of tagAttributes(head, 'meta')) {
+    const a = attrs(raw)
     const key = (a['property'] ?? a['name'] ?? '').toLowerCase()
     const content = a['content']
     if (!key || content === undefined) continue
@@ -115,9 +133,8 @@ export function parseMeta(html: string): MetaTags {
     assign(tags, key, content)
   }
 
-  LINK_RE.lastIndex = 0
-  while ((m = LINK_RE.exec(head)) !== null) {
-    const a = attrs(m[1] ?? '')
+  for (const raw of tagAttributes(head, 'link')) {
+    const a = attrs(raw)
     const rels = (a['rel'] ?? '').toLowerCase().split(/\s+/)
     if (rels.includes('canonical') && a['href']) {
       tags.canonical ??= a['href']
@@ -125,11 +142,6 @@ export function parseMeta(html: string): MetaTags {
   }
 
   return tags
-}
-
-function extractHead(html: string): string {
-  const match = /<head[^>]*>([\s\S]*?)<\/head>/i.exec(html)
-  return match?.[1] ?? html
 }
 
 function assign(tags: MetaTags, key: string, value: string): void {

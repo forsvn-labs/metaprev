@@ -21,7 +21,7 @@ Start the server first. Browser checks use installed Google Chrome and make real
 public requests to `conquistador.app`.
 
 ```sh
-bun test
+bun run test
 bun run typecheck
 bun run test:http
 bun test/browser.ts
@@ -113,3 +113,12 @@ body follows or Content-Length describes the full document. The 128 KiB head
 limit and URL/DNS checks remain in force. The primary text font is preloaded.
 Inspection JSON may be compressed but remains no-store/noindex; HTML keeps
 no-transform to prevent automatic analytics injection.
+
+## Inspection regression checks
+
+From the root, with the local server running, use
+`bash site/test/inspection-browser.sh` for isolated browser checks against
+example.com. From `app/`, use `bun test/parse-benchmark.ts` for a repeatable
+malformed-attribute CPU benchmark. These check source behavior, not live Worker
+latency or a new npm release. The targeted failure cases and remaining limits
+are recorded in [the acceptance contract](test/acceptance.md).

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "bun --watch server.ts",
     "start": "bun server.ts",
-    "test": "bun test test/secure.test.ts test/content.test.ts",
+    "test": "bun test test/secure.test.ts test/content.test.ts test/inspect-core.test.ts edge/test",
     "test:http": "bun test/http.ts",
     "typecheck": "tsc --noEmit",
     "cms": "bun scripts/cms.ts",
