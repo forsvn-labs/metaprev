@@ -34,3 +34,19 @@ describe('content publication boundary', () => {
     for (const url of ['javascript:alert(1)', 'http://ko-fi.com/hung', 'https://github.com/hungv47', 'https://ko-fi.com.evil.test/hung', 'https://user:pass@ko-fi.com/hung']) expect(() => parseSupportUrl(url)).toThrow()
   })
 })
+
+import { articleShell } from '../lib/page.ts'
+test('guide support explains voluntary payment and links to the configured owner',()=>{
+ const html=articleShell({title:'Guide',body:'Useful checks',support:true,supportHref:parseSupportUrl('https://github.com/sponsors/hungv47')})
+ expect(html).toContain('Did this guide help?')
+ expect(html).toContain('Support Hung on GitHub Sponsors')
+ expect(html).toContain('voluntary')
+ expect(html).toContain('Metaprev stays free')
+ expect(html).toContain('rel="noopener noreferrer"')
+ const ordinary=articleShell({title:'About',body:'About'})
+ expect(ordinary).not.toContain('Did this guide help?')
+})
+
+test('an explicitly disabled support destination hides the guide callout',()=>{
+ expect(articleShell({title:'Guide',body:'Useful',support:true,supportHref:''})).not.toContain('Did this guide help?')
+})

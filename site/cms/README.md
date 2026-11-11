@@ -70,3 +70,8 @@ are not currently measured. GitHub manages sponsorships and payouts.
 
 AdSense/Journey applications, consent configuration, remote CMS OAuth, automated
 publishing, and paid tools remain separate setup work. Ads stay disabled.
+
+Public guide acceptance can run without the local editor: from `site/`, use
+`PUBLIC_ONLY=on BASE=http://127.0.0.1:4336 bun test/content-browser.ts`.
+It checks both support placements, all guides at two widths, and unknown-guide
+404 output. With `PUBLIC_ONLY` unset, the existing local CMS save check also runs.

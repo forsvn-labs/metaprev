@@ -1321,3 +1321,8 @@ a:hover { text-decoration-color: var(--mark); }
 [data-appearance='dark'] .messaging-card, [data-card-appearance='dark'] .messaging-card { background: #242e3a; color: #f0f4f8; border-color: #627080; }
 [data-appearance='dark'] .messaging-card__domain, [data-card-appearance='dark'] .messaging-card__domain { color: #c2d1e1; }
 @media (max-width: 700px) { .messaging__grid { grid-template-columns: minmax(0, 1fr); } .messaging-surface { padding: 14px; } }
+
+/* Voluntary support belongs on public guides only. */
+.guide-support { margin-top: 2.5rem; padding: 1.5rem; border: 1px solid currentColor; border-radius: .5rem; }
+.guide-support h2 { margin-top: 0; }
+.guide-support > a { display: inline-block; font-weight: 700; padding: .6rem 0; }

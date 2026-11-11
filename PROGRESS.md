@@ -4,6 +4,8 @@ Updated: 2026-11-11 · Stage: live · Health: Live acceptance passed
 
 ## Shipped
 
+- **Capacity recovery and guide support** (2026-11-11): live inspections now give retry guidance when busy, recover from temporary image storage failures, and keep findings when an image expires. All ten guides offer voluntary support through the existing GitHub Sponsors page.
+
 - **Bounded inspection** (2026-11-11): the live inspector handles the tested malformed pages without excessive parser work, releases cancelled requests, and keeps image facts when preview storage fails. Live HTTP, browser and image checks pass. The npm package is unchanged.
 
 - **Content pilot** (2026-11-07): ten guides and the GitHub Sponsors support link are live. Authors can edit guides in the local CMS and publish through the existing build.
@@ -15,7 +17,7 @@ Updated: 2026-11-11 · Stage: live · Health: Live acceptance passed
 
 ## In progress
 
-None for this release.
+- **Repository merge** (2026-11-11): the deployed capacity changes are pushed and ready to merge, but the GitHub integration denied the merge. No alternate access route was used to bypass that denial.
 
 ## Up next
 
@@ -23,12 +25,13 @@ None for this release.
 - Observe real search demand and free-tier availability. No revenue or traffic forecast is established.
 - Ads remain off until a publisher/site and placements are approved.
 
-Next action: Observe live inspection reliability and free-tier availability. Search access and content observations remain pending.
+Next action: Complete the repository merge through authorized GitHub access. Observe live reliability and free-tier availability. Search access and content observations remain pending.
 
 <details><summary>Technical details</summary>
 
 | Item | State | Evidence | Date |
 | --- | --- | --- | --- |
+| Capacity recovery and guide support | Live; repository merge pending | [PR #16](https://github.com/forsvn-labs/metaprev/pull/16), deployed source `5d23277547dbb50660185ac2c6a081b470a3163c`; Worker version `09587359-fea0-4fd0-841f-4b9d40148cb9` at 100%. 78 site/Worker and 96 CLI tests pass; lint has no errors, three typechecks and build pass. Live HTTP 60/60, inspection browser, ten-guide support and six image/cache checks pass. Evidence: ignored `site/artifacts/capacity/`; repeat commands in `docs/state-machines.md`. GitHub merge returned 403 Resource not accessible by integration; CodeRabbit is now in progress on the PR; no review decision is reported. The child does not poll or watch it. Self-inspection of the Worker hostname returned upstream 522/private 422; external acceptance targets passed. | 2026-11-11 |
 | Bounded inspection | [PR #15](https://github.com/forsvn-labs/metaprev/pull/15); merged and deployed | 96 CLI tests and 62 site/Worker tests pass; three typechecks and free Worker build pass. Local 32 KB malformed-attribute median: 607.45 ms → 0.030 ms (five samples, Bun 1.4.3). Lint passes with zero errors and warnings; rules are unchanged. String/null fetch failures retain a diagnostic; repair escaping is covered by a compatibility test. Isolated browser checks pass. Worker version `44c5a5f5-1665-4597-89b0-66227c0246ab` serves 100% of traffic. Live HTTP 60/60, isolated browser, and 1200×630 PNG delivery pass; report/image no-store and noindex verified. Evidence: ignored `site/artifacts/inspection/lint-release/`; commands in [the acceptance contract](site/test/acceptance.md). | 2026-11-11 |
 | Content pilot | Shipped | PRs [#13](https://github.com/forsvn-labs/metaprev/pull/13) and [#14](https://github.com/forsvn-labs/metaprev/pull/14); deployed `b3d551bc-7289-4ded-bcc7-0c4efbd61f18`. 52 unit/security tests, both typechecks, production build, 60 live HTTP checks and 85 live browser checks passed. Artifacts: `site/artifacts/content-live/` and `site/artifacts/http/results.json`. Local CMS save was verified before release; setup: `site/cms/README.md`. | 2026-11-07 |
 | Faster inspection | Shipped | Live HTTP/browser checks passed; sample JSON response 52,694 → 7,732 transferred bytes with gzip; reports remain no-store | 2026-11-07 |

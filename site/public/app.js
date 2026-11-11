@@ -65,7 +65,24 @@
     if (img.dataset.watched === 'true') return
     img.dataset.watched = 'true'
     const fail = () => {
-      const message = 'Image preview expired. Check the link again to reload it.'
+      const message = 'Image preview is unavailable or expired. Check the link again to reload it.'
+      const report = img.closest('[data-results-content]')
+      if (report && !report.querySelector('[data-preview-recovery]')) {
+        const notice = document.createElement('p')
+        notice.dataset.previewRecovery = ''
+        notice.setAttribute('role', 'status')
+        notice.textContent = message + ' '
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'seg__btn'
+        button.textContent = 'Return to URL'
+        button.addEventListener('click', () => {
+          const input = document.querySelector('form[data-inspect-form] input[name="url"]')
+          if (input) { input.focus(); input.scrollIntoView({ block: 'center' }) }
+        })
+        notice.append(button)
+        report.prepend(notice)
+      }
       const proof = img.classList.contains('trim__img') ? img.closest('.proof') : null
       const box = document.createElement('div')
       if (proof) {
@@ -81,7 +98,7 @@
       holder.classList.add('is-empty')
       const label = document.createElement('span')
       label.className = 'mock__empty'
-      label.textContent = 'Preview expired'
+      label.textContent = 'Preview unavailable'
       img.replaceWith(label)
     }
     img.addEventListener('error', fail, { once: true })
@@ -216,6 +233,7 @@
     if (status === 413) return 'The request was too large. Enter one URL.'
     if (status === 422) return 'This page could not be inspected. Try another public URL.'
     if (status === 429) return 'Too many checks in a short time. Wait a minute, then try again.'
+    if (status === 503) return 'The inspector is temporarily unavailable. Try again in a few seconds, or use the local CLI.'
     return 'The check failed on the server. Try again in a moment.'
   }
 

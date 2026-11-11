@@ -24,6 +24,9 @@ site/lib/inspect.ts        Local wrapper and short-lived image cache
 site/lib/inspect-core.ts   Shared inspection/parser adapter
 site/lib/url-policy.ts     Pure public-URL and IP policy
 site/edge/                Cloudflare Free Worker, native fetch, static build and tests
+site/edge/src/admission.ts Per-isolate request slots and bounded caller windows
+site/edge/src/cache-operation.ts Deadline/cancellation around edge cache calls
+docs/state-machines.md    Canonical deployed lifecycle model and recovery limits
 site/lib/compress.ts       Streaming gzip negotiation for text responses
 site/lib/page.ts           HTML shell, canonical URLs, and structured data
 site/data/guides.json      Editable guide records and publication status
@@ -100,3 +103,10 @@ Required package assets and code remain in Git.
 - [CHANGELOG.md](CHANGELOG.md): recorded delivery history. [app/CHANGELOG.md](app/CHANGELOG.md): detailed package history, including unreleased source changes.
 - [brand/BRAND.md](brand/BRAND.md): implemented identity. Its retired STATUS link is historical; current verification and release state is in PROGRESS.
 - [ops/README.md](ops/README.md): historical operations entry; its private-source and no-landing-page statements predate this repository's current map.
+
+`site/test/capacity-fixture.ts` and `site/test/capacity-browser.sh` test expired
+previews and non-JSON capacity errors offline through isolated agent-browser.
+Start a fresh fixture for each run; commands and limits are in `site/README.md`.
+
+`site/test/support-browser.sh` checks guide-only support rendering;
+`site/test/cache-live.ts` checks one live inspection and opaque image GET/HEAD/miss.

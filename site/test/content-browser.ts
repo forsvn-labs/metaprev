@@ -1,6 +1,7 @@
 // Repeatable acceptance artifact: local public pages and local editor discovery.
 import { chromium } from 'playwright'
 import { mkdir } from 'node:fs/promises'
+import { supportUrl } from '../data/support.ts'
 import { guides } from '../data/guides.ts'
 const base = process.env.BASE ?? 'http://127.0.0.1:4336'
 const out = new URL('../artifacts/content-pilot/', import.meta.url)
@@ -19,13 +20,19 @@ try {
       check(`${width}: ${guide.slug} readable without scripts`, await page.locator('h1').innerText() === guide.title)
       check(`${width}: ${guide.slug} no overflow`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
       check(`${width}: ${guide.slug} review date`, (await page.locator('.updated').innerText()).includes(guide.reviewed))
-      check(`${width}: ${guide.slug} support link`, await page.getByRole('link', { name: /Support Hung/ }).getAttribute('href') === 'https://github.com/sponsors/hungv47')
+      for (const selector of ['footer', '.guide-support']) {
+        const link = page.locator(selector).getByRole('link', { name: /Support Hung/ })
+        check(`${width}: ${guide.slug} ${selector} support`, supportUrl ? await link.getAttribute('href') === supportUrl : await link.count() === 0)
+      }
     }
+    const missing = await page.goto(base + '/guides/missing')
+    check(`${width}: unknown guide has no support callout`, missing?.status() === 404 && await page.locator('.guide-support').count() === 0)
     check(`${width}: public editor is absent`, (await page.goto(base + '/admin/'))?.status() === 404)
     await context.close()
   }
   const sitemap = await (await fetch(base + '/sitemap.xml')).text()
   check('sitemap contains all published guides', guides.every(g => sitemap.includes('/guides/' + g.slug)))
+  if (process.env.PUBLIC_ONLY !== 'on') {
   const context = await browser.newContext()
   const editor = await context.newPage()
   const errors: string[] = []
@@ -51,6 +58,7 @@ try {
   } finally { await Bun.write(contentFile, original) }
 
   await context.close()
+  }
 } catch (error) {
   check('acceptance completed without an error', false)
   throw error

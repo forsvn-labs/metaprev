@@ -97,3 +97,10 @@ test('redirect cleanup cannot hang the next checked request', async () => {
  ])
  expect(result).toBe('https://example.com/next')
 })
+test('image byte envelope accepts one MiB and rejects the next byte',async()=>{
+ for(const size of [1024*1024,1024*1024+1]) {
+  const run=fetchRemote('https://example.com/image.png','image',mock(()=>new Response(new Uint8Array(size),{headers:{'content-type':'image/png'}})))
+  if(size===1024*1024)expect((await run).body.byteLength).toBe(size)
+  else await expect(run).rejects.toThrow('free web limit')
+ }
+})
