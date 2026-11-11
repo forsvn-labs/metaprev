@@ -26,7 +26,6 @@ type Opts = {
 }
 
 const VERSION = '0.6.0'
-const SUBCOMMANDS = new Set<Cmd>(['issues', 'facts'])
 const ISSUE_TAGS: Record<IssueLevel, string> = {
   error: 'ERR',
   warn: 'WRN',
@@ -81,8 +80,10 @@ function parseArgs(argv: string[]): Opts {
         process.exit(2)
     }
   }
-  if (positional[0] && SUBCOMMANDS.has(positional[0] as Cmd)) {
-    opts.cmd = positional.shift() as Cmd
+  const command = positional[0]
+  if (command === 'issues' || command === 'facts') {
+    opts.cmd = command
+    positional.shift()
   }
   if (positional[0]) opts.url = positional[0]
   if (opts.url && !/^https?:\/\//i.test(opts.url)) opts.url = `http://${opts.url}`
@@ -290,7 +291,7 @@ async function main(): Promise<void> {
   try {
     report = await buildReport(opts)
   } catch (err) {
-    const msg = (err as Error).message
+    const msg = err instanceof Error ? err.message : String(err)
     console.error(`metaprev: failed to fetch ${opts.url}`)
     console.error(`  ${msg}`)
     if (/self[ -]?signed|certificate|unable to verify/i.test(msg) && !opts.insecure && !isLocalUrl(opts.url)) {

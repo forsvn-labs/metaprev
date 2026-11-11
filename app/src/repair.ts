@@ -2,8 +2,23 @@ import { CARD_SUMMARY, CARD_SUMMARY_LARGE_IMAGE, isKnownTwitterCard, resolvePlat
 import { classifyUrlHost } from './host.ts'
 import type { Issue, MetaTags, Report } from './types.ts'
 
+// Replace each consecutive ASCII control run with one space. Keep printable
+// Unicode intact; snippets must not carry terminal or attribute control bytes.
+function replaceControlRuns(value: string): string {
+  let result = ''
+  let inControlRun = false
+  for (const char of value) {
+    const code = char.charCodeAt(0)
+    const control = code <= 31 || code === 127
+    if (!control) result += char
+    else if (!inControlRun) result += ' '
+    inControlRun = control
+  }
+  return result
+}
+
 function oneLine(value: string): string {
-  return value.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim()
+  return replaceControlRuns(value).replace(/\s+/g, ' ').trim()
 }
 
 function issueBlock(issue: Issue, index: number): string {
@@ -16,8 +31,7 @@ function issueBlock(issue: Issue, index: number): string {
 }
 
 function htmlAttribute(value: string): string {
-  return value
-    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+  return replaceControlRuns(value)
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')

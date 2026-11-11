@@ -1,7 +1,8 @@
 import { InspectionError, parseTarget, assertPublicAddress } from '../../lib/url-policy.ts'
 type Fetcher = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
 export async function boundedBody(response: Response, max: number, signal: AbortSignal, head = false): Promise<Uint8Array> {
-  if (!head && Number(response.headers.get('content-length')) > max) { await response.body?.cancel(); throw new InspectionError('Response exceeds the free web limit. Use the CLI.') }
+  if (signal.aborted) { void response.body?.cancel().catch(()=>{}); signal.throwIfAborted() }
+  if (!head && Number(response.headers.get('content-length')) > max) { void response.body?.cancel().catch(()=>{}); throw new InspectionError('Response exceeds the free web limit. Use the CLI.') }
   const reader = response.body?.getReader()
   if (!reader) return new Uint8Array()
   const chunks: Uint8Array[] = []; let size=0; let tail=''
@@ -40,8 +41,10 @@ export async function boundedBody(response: Response, max: number, signal: Abort
 export async function fetchRemote(input:string, kind:'html'|'image', request:Fetcher=fetch, outer?:AbortSignal) {
   let url=parseTarget(input)
   const signal=AbortSignal.any([AbortSignal.timeout(kind==='html'?10000:6000),...(outer?[outer]:[])])
+  signal.throwIfAborted()
   const visited=new Set<string>()
   for(let redirects=0;redirects<=4;redirects++){
+    signal.throwIfAborted()
     if(visited.has(url.href))throw new InspectionError('The page redirects in a loop.')
     visited.add(url.href)
     // Cloudflare's native fetch supplies the network isolation boundary. This
@@ -55,19 +58,20 @@ export async function fetchRemote(input:string, kind:'html'|'image', request:Fet
     }))
     if(!answers.flat().length)throw new InspectionError('The hostname has no public address.')
     answers.flat().forEach(assertPublicAddress)
+    signal.throwIfAborted()
     const response=await request(url.href,{signal,redirect:'manual',headers:{
       'User-Agent':'metaprev/0.1 (+https://github.com/forsvn-labs/metaprev)',
       Accept:kind==='html'?'text/html,application/xhtml+xml':'image/png,image/jpeg,image/webp,image/gif',
     }})
     if([301,302,303,307,308].includes(response.status)){
-      await response.body?.cancel()
+      void response.body?.cancel().catch(()=>{})
       const location=response.headers.get('location')
       if(!location)throw new InspectionError('Redirect has no destination.')
       url=parseTarget(new URL(location,url).href);continue
     }
     const contentType=(response.headers.get('content-type')??'').split(';')[0]!.trim().toLowerCase()
     const accepted=kind==='html'?['text/html','application/xhtml+xml']:['image/png','image/jpeg','image/webp','image/gif']
-    if(!response.ok||!accepted.includes(contentType)){await response.body?.cancel();throw new InspectionError(`Target returned HTTP ${response.status} or an unsupported content type.`)}
+    if(!response.ok||!accepted.includes(contentType)){void response.body?.cancel().catch(()=>{});throw new InspectionError(`Target returned HTTP ${response.status} or an unsupported content type.`)}
     const body=await boundedBody(response,kind==='html'?128*1024:1024*1024,signal,kind==='html')
     return {url:url.href,status:response.status,headers:Object.fromEntries(response.headers),body,contentType}
   }

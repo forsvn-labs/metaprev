@@ -49,8 +49,14 @@ local HTML repair workspace. The website enters through `site/server.ts`.
 
 Commands: from `app/`, run `bun install`, `bun run dev <url> --no-open`,
 `bun test`, `bun run lint`, and `bun run typecheck`. From `site/`, run
-`bun install`, `bun run dev`, `bun test`, and `bun run typecheck`.
+`bun install`, `bun run dev`, `bun run test`, and `bun run typecheck`.
 The website README owns running-service acceptance commands and host settings.
+`app/test/parse-benchmark.ts` measures malformed-attribute parser cost with five
+samples per size (`bun test/parse-benchmark.ts` from `app/`).
+`site/test/inspection-browser.sh` checks retry, privacy, support and report controls
+through isolated agent-browser against a running server. `site/edge/test/` covers
+fetch bounds, cancellation and request-slot recovery; `site/test/inspect-core.test.ts`
+covers corrupt images, cache failure and independent concurrent reports.
 
 ## Read before changing
 

@@ -1,6 +1,6 @@
 # Progress
 
-Updated: 2026-11-07 · Stage: live · Health: On track
+Updated: 2026-11-11 · Stage: live · Health: Ready for release
 
 ## Shipped
 
@@ -11,18 +11,26 @@ Updated: 2026-11-07 · Stage: live · Health: On track
 - Cloudflare Free Worker and static pages replace the proposed Containers deployment.
 - Reports show previews, observed tags, feedback and repair snippets. HTML form works without JavaScript.
 
+## In progress
+
+- **Bounded inspection** (2026-11-11): source fixes prevent malformed pages from
+  consuming excessive parser CPU, release cancelled inspections, and keep valid
+  image facts when preview storage fails. All 96 CLI and 62 site/Worker tests, lint, three typechecks and the build pass.
+  Merge and deployment remain pending; the public Worker and npm package are unchanged.
+
 ## Up next
 
 - Restore the expired Google authorization before recording search baselines. Remote CMS OAuth, daily automation and ad-network onboarding remain unconfigured.
 - Observe real search demand and free-tier availability. No revenue or traffic forecast is established.
 - Ads remain off until a publisher/site and placements are approved.
 
-Next action: Restore Search Console access, record the search baseline, and review content performance.
+Next action: Merge and deploy the verified inspection fixes, then check live acceptance. Search access and content observations remain pending.
 
 <details><summary>Technical details</summary>
 
 | Item | State | Evidence | Date |
 | --- | --- | --- | --- |
+| Bounded inspection | [PR #15](https://github.com/forsvn-labs/metaprev/pull/15); not shipped | 96 CLI tests and 62 site/Worker tests pass; three typechecks and free Worker build pass. Local 32 KB malformed-attribute median: 607.45 ms → 0.030 ms (five samples, Bun 1.4.3). Lint passes with zero errors and warnings; rules are unchanged. String/null fetch failures retain a diagnostic; repair escaping is covered by a compatibility test. Isolated browser checks pass. Evidence: ignored `site/artifacts/inspection/`; commands in [the acceptance contract](site/test/acceptance.md). | 2026-11-11 |
 | Content pilot | Shipped | PRs [#13](https://github.com/forsvn-labs/metaprev/pull/13) and [#14](https://github.com/forsvn-labs/metaprev/pull/14); deployed `b3d551bc-7289-4ded-bcc7-0c4efbd61f18`. 52 unit/security tests, both typechecks, production build, 60 live HTTP checks and 85 live browser checks passed. Artifacts: `site/artifacts/content-live/` and `site/artifacts/http/results.json`. Local CMS save was verified before release; setup: `site/cms/README.md`. | 2026-11-07 |
 | Faster inspection | Shipped | Live HTTP/browser checks passed; sample JSON response 52,694 → 7,732 transferred bytes with gzip; reports remain no-store | 2026-11-07 |
 | Public Open Graph review | Shipped | https://metaprev.forsvn.com — deployment 232b9841-5179-493a-9327-9ebcc4f03eb7; live checks passed | 2026-11-07 |
@@ -53,6 +61,20 @@ No paid plan was purchased. No Containers, database or paid bindings are configu
 ## Later
 
 - Historical release gaps and deferred outcomes remain in [docs/progress-log.md](docs/progress-log.md); none are active commitments.
+
+## 2026-11-11
+
+- Inspection fixes pass local release checks; they are not yet released. Synthetic parser measurements
+  show the confirmed malformed-input CPU problem is removed for the tested cases.
+  Request cancellation, slot recovery, cache failure and concurrent report tests pass.
+  The 21 lint errors and five warnings are resolved without rule changes.
+  Two non-Error fetch regression tests failed before the diagnostic fix and pass after it.
+  Release evidence is in `site/artifacts/inspection/lint-release/`; live verification remains pending.
+- Support remains the existing GitHub Sponsors link; isolated browser verification
+  confirmed it is present. No ads, paid bindings or pricing changes were made.
+  A scoped option is to test clearer voluntary-support text on public guides after
+  traffic measurement access is restored. Keep private reports ad-free and the core
+  tool free. No conversion uplift or revenue is established.
 
 ## 2026-11-07
 

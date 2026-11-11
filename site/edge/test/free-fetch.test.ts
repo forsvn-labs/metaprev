@@ -53,3 +53,47 @@ test('head boundary split between chunks still stops before a large body',async(
  const result=await fetchRemote('https://example.com','html',mock(()=>new Response(stream,{headers:{'content-type':'text/html'}})))
  expect(new TextDecoder().decode(result.body)).toBe('<head><title>Split</title></head>')
 })
+
+// Cancellation must bound cleanup as well as reads. A rejected stream can have
+// a cancel hook that never settles; it must not retain an inspection slot.
+import { boundedBody } from '../src/free-fetch.ts'
+test('rejects oversized declared body without waiting for upstream cancellation', async () => {
+ const response = new Response(new ReadableStream({cancel: () => new Promise(() => {})}), {headers: {'content-length':'100'}})
+ const result = await Promise.race([
+  boundedBody(response, 10, new AbortController().signal).then(() => 'accepted', () => 'rejected'),
+  Bun.sleep(100).then(() => 'hung'),
+ ])
+ expect(result).toBe('rejected')
+})
+test('already cancelled request makes no DNS or upstream calls', async () => {
+ let calls=0
+ await expect(fetchRemote('https://example.com','html',async()=>{calls++;return publicDNS.clone()},AbortSignal.abort())).rejects.toThrow()
+ expect(calls).toBe(0)
+})
+test('abort releases a stalled body read', async () => {
+ const controller=new AbortController(); let cancelled=false
+ const response=new Response(new ReadableStream({cancel(){cancelled=true}}))
+ const reading=boundedBody(response,100,controller.signal)
+ controller.abort()
+ await expect(reading).rejects.toThrow()
+ expect(cancelled).toBe(true)
+})
+test('already aborted body is cancelled without reading', async () => {
+ let cancelled=false
+ const response=new Response(new ReadableStream({cancel(){cancelled=true}}))
+ await expect(boundedBody(response,100,AbortSignal.abort())).rejects.toThrow()
+ expect(cancelled).toBe(true)
+})
+test('redirect cleanup cannot hang the next checked request', async () => {
+ let calls=0
+ const result=await Promise.race([
+  fetchRemote('https://example.com','html',mock(()=>{
+   calls++
+   return calls===1
+    ? new Response(new ReadableStream({cancel:()=>new Promise(()=>{})}),{status:302,headers:{location:'/next'}})
+    : new Response('<head><title>Next</title></head>',{headers:{'content-type':'text/html'}})
+  })).then(response=>response.url),
+  Bun.sleep(100).then(()=>'hung'),
+ ])
+ expect(result).toBe('https://example.com/next')
+})
