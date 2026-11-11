@@ -251,7 +251,7 @@ matches existing `site/data/support.json` and `.github/FUNDING.yml`.
 | --- | --- | --- | --- | --- | --- |
 | I-01 | P2 | Fixed | F-01, F-02 | Distinguish caller limits from capacity | https://github.com/forsvn-labs/metaprev/pull/16 |
 | I-02 | P2 | Fixed | F-03, F-04 | Bound cache failure and cancellation | https://github.com/forsvn-labs/metaprev/pull/16 |
-| I-04 | P3 | Fixed | F-06 | Explain self-host deployment limit without network fallback | This change; PR pending |
+| I-04 | P3 | Fixed | F-06 | Explain self-host deployment limit without network fallback | https://github.com/forsvn-labs/metaprev/pull/17 |
 | I-03 | P3 | Fixed | F-05 | Explicit preview recovery | https://github.com/forsvn-labs/metaprev/pull/16 |
 
 ## Fix log
@@ -380,3 +380,16 @@ is not merged; retained without force deletion. Owner PROGRESS edits remain
 untouched. This follow-up is recorded here rather than mixing those edits into
 its commit. Prior PR #16 is merged and deployed as recorded in PROGRESS; the older
 blocked-merge text above is historical and is superseded by that record.
+
+
+Self-host release evidence: source `8b9bd1da5112797994c024b870ff8bd08477185e`,
+PR #17; final Worker version `bc741c18-4028-461d-b9ab-e64ecb71dc6e`.
+Live self-host API now returns the explicit private 422; isolated live browser
+rejection/correction passes and HTTP acceptance is 60/60. Public homepage robots
+is `index, follow`. Final deployment used `PUBLIC_INDEXING=on bun run deploy`.
+The preceding deploy omitted that environment setting; because deploy rebuilds,
+it was replaced by this indexed deployment and the run instructions were corrected.
+Only ASSETS is bound. No paid resource, ads or account settings changed.
+The source is live; PR integration remains subject to checks, not overridden.
+Owner PROGRESS content remains byte-for-byte untouched by this task; the parent
+can add this release evidence separately from the owner's AdSense update.

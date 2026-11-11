@@ -85,9 +85,11 @@ Worker for `/api/inspect`, `/inspect`, and `/api/image`. No Containers, paid
 bindings, database, or Docker is required. The CLI remains separate.
 
 From `edge/`: `bun install`, `bun run typecheck`, then
-`PUBLIC_INDEXING=on bun run build` and `bun run deploy` with an authorized
+`PUBLIC_INDEXING=on bun run build` and `PUBLIC_INDEXING=on bun run deploy` with an authorized
 Cloudflare CLI login. Public indexing was enabled after live HTTP acceptance.
 Reports remain no-store/noindex. Logs and traces are disabled in the Worker.
+`cf deploy` rebuilds assets, so set `PUBLIC_INDEXING=on` for deployment too;
+a prior indexed build does not carry this environment value into a new build.
 
 The Worker reads at most 128 KiB of HTML and 1 MiB per raster image, with
 redirect, type and deadline limits. It uses native Cloudflare fetch after
