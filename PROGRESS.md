@@ -1,6 +1,6 @@
 # Progress
 
-Updated: 2026-11-11 · Stage: live · Health: Release blocked by lint
+Updated: 2026-11-11 · Stage: live · Health: Ready for release
 
 ## Shipped
 
@@ -15,8 +15,8 @@ Updated: 2026-11-11 · Stage: live · Health: Release blocked by lint
 
 - **Bounded inspection** (2026-11-11): source fixes prevent malformed pages from
   consuming excessive parser CPU, release cancelled inspections, and keep valid
-  image facts when preview storage fails. Tests and build pass. Merge and deployment
-  wait on the existing lint failures; the public Worker and npm package are unchanged.
+  image facts when preview storage fails. All 96 CLI and 62 site/Worker tests, lint, three typechecks and the build pass.
+  Merge and deployment remain pending; the public Worker and npm package are unchanged.
 
 ## Up next
 
@@ -24,13 +24,13 @@ Updated: 2026-11-11 · Stage: live · Health: Release blocked by lint
 - Observe real search demand and free-tier availability. No revenue or traffic forecast is established.
 - Ads remain off until a publisher/site and placements are approved.
 
-Next action: Resolve the existing lint gate before merging and deploying the inspection fixes. Search access and content observations remain pending.
+Next action: Merge and deploy the verified inspection fixes, then check live acceptance. Search access and content observations remain pending.
 
 <details><summary>Technical details</summary>
 
 | Item | State | Evidence | Date |
 | --- | --- | --- | --- |
-| Bounded inspection | [PR #15](https://github.com/forsvn-labs/metaprev/pull/15); not shipped | 92 CLI tests and 62 site/Worker tests pass; three typechecks and free Worker build pass. Local 32 KB malformed-attribute median: 607.45 ms → 0.030 ms (five samples, Bun 1.4.3). Existing lint: 21 errors and five warnings both at baseline and after changes. Isolated browser checks pass. Evidence: ignored `site/artifacts/inspection/`; commands in [the acceptance contract](site/test/acceptance.md). | 2026-11-11 |
+| Bounded inspection | [PR #15](https://github.com/forsvn-labs/metaprev/pull/15); not shipped | 96 CLI tests and 62 site/Worker tests pass; three typechecks and free Worker build pass. Local 32 KB malformed-attribute median: 607.45 ms → 0.030 ms (five samples, Bun 1.4.3). Lint passes with zero errors and warnings; rules are unchanged. String/null fetch failures retain a diagnostic; repair escaping is covered by a compatibility test. Isolated browser checks pass. Evidence: ignored `site/artifacts/inspection/`; commands in [the acceptance contract](site/test/acceptance.md). | 2026-11-11 |
 | Content pilot | Shipped | PRs [#13](https://github.com/forsvn-labs/metaprev/pull/13) and [#14](https://github.com/forsvn-labs/metaprev/pull/14); deployed `b3d551bc-7289-4ded-bcc7-0c4efbd61f18`. 52 unit/security tests, both typechecks, production build, 60 live HTTP checks and 85 live browser checks passed. Artifacts: `site/artifacts/content-live/` and `site/artifacts/http/results.json`. Local CMS save was verified before release; setup: `site/cms/README.md`. | 2026-11-07 |
 | Faster inspection | Shipped | Live HTTP/browser checks passed; sample JSON response 52,694 → 7,732 transferred bytes with gzip; reports remain no-store | 2026-11-07 |
 | Public Open Graph review | Shipped | https://metaprev.forsvn.com — deployment 232b9841-5179-493a-9327-9ebcc4f03eb7; live checks passed | 2026-11-07 |
@@ -64,11 +64,12 @@ No paid plan was purchased. No Containers, database or paid bindings are configu
 
 ## 2026-11-11
 
-- Inspection fixes are ready for review, not released. Synthetic parser measurements
+- Inspection fixes pass local release checks; they are not yet released. Synthetic parser measurements
   show the confirmed malformed-input CPU problem is removed for the tested cases.
   Request cancellation, slot recovery, cache failure and concurrent report tests pass.
-  The lint gate fails on the same 21 existing errors and five warnings as the baseline;
-  no merge, deployment or package publication was attempted.
+  The 21 lint errors and five warnings are resolved without rule changes.
+  Two non-Error fetch regression tests failed before the diagnostic fix and pass after it.
+  Release evidence is in `site/artifacts/inspection/lint-release/`; live verification remains pending.
 - Support remains the existing GitHub Sponsors link; isolated browser verification
   confirmed it is present. No ads, paid bindings or pricing changes were made.
   A scoped option is to test clearer voluntary-support text on public guides after

@@ -3,10 +3,12 @@
 # example.com fetch. No accounts, secrets, external writes, or saved URL history.
 set -euo pipefail
 BASE=${BASE:-http://127.0.0.1:4323}
-SESSION=$(agent-browser session id --scope worktree --prefix metaprev-bounds-test)
+SESSION=$(agent-browser session id --scope worktree --prefix metaprev-inspection-test)
 browser() { agent-browser --session "$SESSION" "$@"; }
 trap 'browser close >/dev/null' EXIT
 browser open "$BASE"
+# Avoid smooth-scroll movement while the driver targets report controls.
+browser set media light reduced-motion
 browser fill 'input[name="url"]' http://127.0.0.1
 browser click '[data-submit]'
 browser wait --fn 'document.querySelector("[data-error]").hidden === false'
@@ -14,7 +16,7 @@ browser eval 'if(document.querySelector("[data-results]").getAttribute("aria-bus
 browser fill 'input[name="url"]' https://example.com
 browser click '[data-submit]'
 browser click '[data-submit]'
-browser wait --fn 'document.querySelector("[data-results-content]") !== null'
+browser wait --fn 'document.querySelector("[data-results-content]") !== null && document.querySelector("[data-results]").getAttribute("aria-busy") === "false"'
 browser eval 'if(!document.body.textContent.includes("Example Domain")) throw Error("missing public report"); if(!document.querySelector("[data-error]").hidden) throw Error("stale error"); "PASS retry and repeated submit"'
 browser click '[data-tab="x"]'
 browser eval 'if(document.querySelector("[role=tab][aria-selected=true]").textContent.trim()!=="X") throw Error("tab"); "PASS platform tab"'
