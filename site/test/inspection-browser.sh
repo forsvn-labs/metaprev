@@ -24,6 +24,8 @@ browser click '[data-copy="json"]'
 browser wait --fn 'document.querySelector("[data-copy=json]").getAttribute("data-state") === "copied"'
 browser eval 'if(localStorage.length || sessionStorage.length) throw Error("stored user data"); if(!document.querySelector("a[href=\"https://github.com/sponsors/hungv47\"]")) throw Error("support missing"); if(document.documentElement.scrollWidth>innerWidth) throw Error("overflow"); "PASS copy, privacy, support, desktop layout"'
 browser set viewport 390 844
+# Wait for the resized layout to paint before measuring its scroll width.
+browser eval 'new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))'
 browser eval 'if(document.documentElement.scrollWidth>innerWidth) throw Error("mobile overflow"); "PASS mobile layout"'
 browser eval --stdin <<'JS'
 (async () => {

@@ -122,3 +122,23 @@ example.com. From `app/`, use `bun test/parse-benchmark.ts` for a repeatable
 malformed-attribute CPU benchmark. These check source behavior, not live Worker
 latency or a new npm release. The targeted failure cases and remaining limits
 are recorded in [the acceptance contract](test/acceptance.md).
+
+## Capacity and recovery checks
+
+The free Worker now returns `429` with a 1–60 second `Retry-After` for a caller
+window, and `503` with a retry delay when all four slots or 5000 caller entries
+are occupied. It evicts expired entries only. These guards are per isolate.
+Cache reads/writes stop waiting after one second or request cancellation.
+Missing previews return 404; cache errors return private 503 responses. A report
+keeps its findings and offers **Return to URL**; the visitor must submit again.
+There is no automatic remote refetch. Provider-level limits can bypass the Worker.
+
+Run `bun run test` here for deterministic local capacity/byte-bound tests.
+From the root, start `bun site/test/capacity-fixture.ts`, then run
+`bash site/test/capacity-browser.sh` once per fresh fixture. It injects image
+expiry and non-JSON 429/503 responses offline. The state model, tested envelope,
+and rollback instructions are in [state machines](../docs/state-machines.md).
+
+Guide articles include a voluntary GitHub Sponsors call to action using the
+existing owner destination. Payments and amount selection happen on GitHub;
+no checkout, tracking, benefits or revenue claims are added to Metaprev.

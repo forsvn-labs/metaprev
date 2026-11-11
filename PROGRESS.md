@@ -15,7 +15,7 @@ Updated: 2026-11-11 · Stage: live · Health: Live acceptance passed
 
 ## In progress
 
-None for this release.
+**Capacity and preview recovery** (2026-11-11): ready to ship. Local tests prove bounded caller state, cancellation recovery, private cache errors and manual image recovery. Guide support now has a clear voluntary action. Deployment and live checks remain pending.
 
 ## Up next
 

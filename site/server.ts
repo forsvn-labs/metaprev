@@ -48,7 +48,7 @@ const htmlResponse = (html: string, status = 200, privatePage = false) => respon
 const jsonResponse = (data: unknown, status = 200) => response(JSON.stringify(data), status,
   { ...privateHeaders, 'Content-Type': 'application/json; charset=utf-8' })
 const article = (title: string, content: string, path: string, description?: string, schema?: object[]) =>
-  page({ title: `${title} · Metaprev`, description, path, body: articleShell({ title, body: content }), schema })
+  page({ title: `${title} · Metaprev`, description, path, body: articleShell({ title, body: content, support: /^\/guides\/[^/]+$/.test(path) }), schema })
 
 async function readInput(request: Request): Promise<z.infer<typeof inputSchema>> {
   const length = Number(request.headers.get('content-length') ?? 0)

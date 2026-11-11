@@ -13,7 +13,7 @@ test('cancellation releases all occupied slots for a retry', async () => {
   method:'POST', body:new ReadableStream(), signal:controller.signal,
   headers:{'CF-Connecting-IP':crypto.randomUUID()},
  })))
- expect((await send(request('{}'))).status).toBe(429)
+ expect((await send(request('{}'))).status).toBe(503)
  controllers.forEach(controller => controller.abort())
  const responses = await Promise.all(pending)
  expect(responses.every(response => response.status === 422)).toBe(true)
