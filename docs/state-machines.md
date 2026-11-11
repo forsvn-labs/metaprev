@@ -246,13 +246,13 @@ matches existing `site/data/support.json` and `.github/FUNDING.yml`.
 
 | ID | Priority | Status | Findings | Title | Link |
 | --- | --- | --- | --- | --- | --- |
-| I-01 | P2 | Fixed | F-01, F-02 | Distinguish caller limits from capacity | Current capacity PR |
-| I-02 | P2 | Fixed | F-03, F-04 | Bound cache failure and cancellation | Current capacity PR |
-| I-03 | P3 | Fixed | F-05 | Explicit preview recovery | Current capacity PR |
+| I-01 | P2 | Fixed | F-01, F-02 | Distinguish caller limits from capacity | https://github.com/forsvn-labs/metaprev/pull/16 |
+| I-02 | P2 | Fixed | F-03, F-04 | Bound cache failure and cancellation | https://github.com/forsvn-labs/metaprev/pull/16 |
+| I-03 | P3 | Fixed | F-05 | Explicit preview recovery | https://github.com/forsvn-labs/metaprev/pull/16 |
 
 ## Fix log
 
-All five findings are fixed together in the capacity/recovery PR; regression
+All five findings are fixed in commit `e1a8f12` in [PR #16](https://github.com/forsvn-labs/metaprev/pull/16); regression
 outputs are in ignored `site/artifacts/capacity/`: `red.txt` (3 failures),
 `cache-red.txt` (deadline failure), `browser-red.txt` (missing recovery),
 `support-red.txt` (missing CTA), and corresponding passing output. Tests precede
@@ -295,3 +295,7 @@ is `BASE=https://metaprev.forsvn.com bun site/test/http.ts`.
 | image-cache | cacheOperation | `site/edge/src/cache-operation.ts` | Deadline and cancellation |
 | browser-inspection | watchImage | `site/public/app.js` | Manual recovery |
 | guide-publication | articleShell | `site/lib/page.ts` | Guide-only support |
+
+The document checker passes with two expected warnings: browser inspection and
+guide publication permit repeated use and have no terminal state. These warnings
+do not indicate unreachable states.
