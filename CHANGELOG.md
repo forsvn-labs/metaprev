@@ -1,5 +1,12 @@
 # metaprev changelog
 
+## 2026-11-11 — Bounded public inspection
+
+- Deployed bounded metadata parsing and request cancellation to the free Worker.
+- Keep verified image facts when temporary preview storage fails.
+- Verified 60 live HTTP checks, the browser flow, and private image delivery.
+- The npm package remains at its previously published version.
+
 ## 2026-11-07 — Content and sponsorship pilot
 
 - Published six additional guides, bringing the public guide library to ten.
